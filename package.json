@@ -1,13 +1,13 @@
 {
   "name": "zana-util",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The utility class for the Zana package",
   "main": "dist/util.js",
   "scripts": {
     "test": "gulp test"
   },
   "keywords": [
-    "Deep",
+    "deep",
     "clone",
     "copy",
     "equals",
