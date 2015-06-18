@@ -132,44 +132,49 @@ var Util = (function () {
             this.types[key] = this.getType(value);
         }
     }, {
-        key: 'clone',
-        value: function clone(src) {
-            return this.deepCopy(src);
+        key: 'deepCopy',
+        value: function deepCopy(src) {
+            return this.clone(src);
         }
     }, {
-        key: 'deepCopy',
-        value: function deepCopy(origSource) {
+        key: 'clone',
+        value: function clone(origSource) {
+            var _this = this;
+
             var origIndex = -1;
             var rc = new RecursiveCounter(1000);
 
-            function _deepCopy(source) {
+            var _clone = function _clone(source) {
                 if (rc.count > rc.maxStackDepth) throw new Error('Stack depth exceeded: ' + rc.stackMaxDepth + '!');
-                switch (this.getType(source)) {
-                    case this.types.object:
+                switch (_this.getType(source)) {
+                    case _this.types.object:
                         return _singleCopy(source, _Object$create(Object.getPrototypeOf(source)));
-                    case this.types.array:
+                    case _this.types.array:
                         return _singleCopy(source, []);
-                    case this.types.regexp:
+                    case _this.types.regexp:
                         return _singleCopy(source, new RegExp(source));
-                    case this.types.date:
-                        return _singleCopy(source, new Date(source.toString()));
-                    case this.types.set:
+                    case _this.types.date:
+                        return _singleCopy(source, new Date(source));
+                    case _this.types.set:
                         return _singleCopy(source, new _Set());
-                    case this.types.map:
+                    case _this.types.map:
                         return _singleCopy(source, new _Map()); // might not work / need a _mapCopy?
                     default:
                         // need to handle functions/generators differently? tbd.
                         return source;
                 }
-            }
+            };
+
+            // set copy?
+            // map copy?
 
             // move function external for performance? really should.
-            function _singleCopy(sourceRef, copyRef) {
+            var _singleCopy = function _singleCopy(sourceRef, copyRef) {
                 origIndex = rc.xStack.indexOf(sourceRef);
                 if (origIndex === -1) {
                     rc.push(sourceRef, copyRef);
-                    this.forEach(sourceRef, function (value, key) {
-                        copyRef[key] = _deepCopy(value);
+                    _this.forEach(sourceRef, function (value, key) {
+                        copyRef[key] = _clone(value);
                     });
                     rc.pop();
                     return copyRef;
@@ -178,8 +183,8 @@ var Util = (function () {
                     // return the reference to the copied item
                     return rc.yStack[origIndex];
                 }
-            }
-            return _deepCopy(origSource);
+            };
+            return _clone(origSource);
         }
     }, {
         key: 'equals',
@@ -200,14 +205,8 @@ var Util = (function () {
                 var xIndex = rc.xStack.lastIndexOf(x);
                 var yIndex = rc.yStack.lastIndexOf(y);
                 if (xIndex !== -1) {
-                    if (yIndex !== -1) {
-                        // don't care about object reference equality
-                        // when checking for object equality
+                    if (yIndex === xIndex) // swapped from yIndex !== -1: is this fair?
                         return true;
-                        // if we do care about object reference equality,
-                        // then a strict comparison of stack location of objects
-                        // needs to be executed and returned
-                    }
                 }
                 // check for inequalities
                 switch (xType) {
@@ -250,6 +249,7 @@ var Util = (function () {
                     case types['function']: // check for properties set on the function
                     case types.object:
                     case types.regexp:
+                        if (!_equals(x.toString(), y.toString())) return false;
                         if (!_compareObject(x, y)) return false;
                         break;
                     default:
@@ -330,14 +330,14 @@ var Util = (function () {
             @returns {any} A reference to the extended target.
         */
         value: function extend(a) {
-            var _this = this;
+            var _this2 = this;
 
             for (var _len2 = arguments.length, rest = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
                 rest[_key2 - 1] = arguments[_key2];
             }
 
             rest.forEach(function (b) {
-                if (_this.isSmashable(a, b)) _this._extend(a, b);
+                if (_this2.isSmashable(a, b)) _this2._extend(a, b);
             });
             return a;
         }
@@ -486,11 +486,11 @@ var Util = (function () {
             @returns {any} The reference to the first item.
         */
         value: function _smash(a, b) {
-            var _this2 = this;
+            var _this3 = this;
 
             this.forEach(b, function (val, key) {
-                if (_this2.isSmashable(a[key], b[key])) // find a way to move isSmashable internal
-                    _this2._smash(a[key], b[key]);else a[key] = _this2.deepCopy(b[key]);
+                if (_this3.isSmashable(a[key], b[key])) // find a way to move isSmashable internal
+                    _this3._smash(a[key], b[key]);else a[key] = _this3.deepCopy(b[key]);
             });
             return a;
         }
@@ -506,15 +506,15 @@ var Util = (function () {
             @returns {any} A reference to the smashed target.
         */
         value: function smash(a) {
-            var _this3 = this;
+            var _this4 = this;
 
             for (var _len3 = arguments.length, rest = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
                 rest[_key3 - 1] = arguments[_key3];
             }
 
             rest.forEach(function (b) {
-                if (_this3.isSmashable(a, b)) // find a way to move isSmashable internal
-                    _this3._smash(a, b);
+                if (_this4.isSmashable(a, b)) // find a way to move isSmashable internal
+                    _this4._smash(a, b);
             });
             return a;
         }
@@ -524,6 +524,8 @@ var Util = (function () {
 })();
 
 exports.Util = Util;
+
+// Util.prototype.clone = Util.prototype.deepCopy;
 
 var util = new Util();
 exports['default'] = util;

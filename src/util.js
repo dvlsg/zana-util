@@ -74,15 +74,15 @@ export class Util {
         this.types[key] = this.getType(value);
     }
 
-    clone(src) {
-        return this.deepCopy(src);
+    deepCopy(src) {
+        return this.clone(src);
     }
 
-    deepCopy(origSource) {
+    clone(origSource) {
         let origIndex = -1;
         let rc = new RecursiveCounter(1000);
 
-        function _deepCopy(source) {
+        let _clone = source => {
             if (rc.count > rc.maxStackDepth) throw new Error("Stack depth exceeded: " + rc.stackMaxDepth + "!");
             switch (this.getType(source)) {
                 case this.types.object:
@@ -92,7 +92,7 @@ export class Util {
                 case this.types.regexp:
                     return _singleCopy(source, new RegExp(source));
                 case this.types.date:
-                    return _singleCopy(source, new Date(source.toString()));
+                    return _singleCopy(source, new Date(source));
                 case this.types.set:
                     return _singleCopy(source, new Set());
                 case this.types.map:
@@ -100,15 +100,18 @@ export class Util {
                 default: // need to handle functions/generators differently? tbd.
                     return source;
             }
-        }
+        };
+
+        // set copy?
+        // map copy?
 
         // move function external for performance? really should.
-        function _singleCopy(sourceRef, copyRef) {
+        let _singleCopy = (sourceRef, copyRef) => {
             origIndex = rc.xStack.indexOf(sourceRef);
             if (origIndex === -1) {
                 rc.push(sourceRef, copyRef);
                 this.forEach(sourceRef, function(value, key) {
-                    copyRef[key] = _deepCopy(value);
+                    copyRef[key] = _clone(value);
                 });
                 rc.pop();
                 return copyRef;
@@ -118,8 +121,8 @@ export class Util {
                 // return the reference to the copied item
                 return rc.yStack[origIndex];
             }
-        }
-        return _deepCopy(origSource);
+        };
+        return _clone(origSource);
     }
 
     equals(item1, item2) {
@@ -141,14 +144,8 @@ export class Util {
             let xIndex = rc.xStack.lastIndexOf(x);
             let yIndex = rc.yStack.lastIndexOf(y);
             if (xIndex !== -1) {
-                if (yIndex !== -1) {
-                    // don't care about object reference equality
-                    // when checking for object equality
+                if (yIndex === xIndex) // swapped from yIndex !== -1: is this fair?
                     return true;
-                    // if we do care about object reference equality,
-                    // then a strict comparison of stack location of objects
-                    // needs to be executed and returned
-                }
             }
             // check for inequalities
             switch(xType) {
@@ -197,6 +194,8 @@ export class Util {
                 case types.function: // check for properties set on the function
                 case types.object:
                 case types.regexp:
+                    if (!_equals(x.toString(), y.toString()))
+                        return false;
                     if (!_compareObject(x, y))
                         return false;
                     break;
