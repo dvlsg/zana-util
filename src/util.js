@@ -152,6 +152,11 @@ export class Util {
             }
             // check for inequalities
             switch(xType) {
+                case types.number:
+                    // triple eq would have compared everything but NaN
+                    if (isNaN(x) && isNaN(y))
+                        return true;
+                    break;
                 case types.date:
                     if (x.getTime() !== y.getTime())
                         return false;
