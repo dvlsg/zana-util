@@ -122,12 +122,42 @@ describe('Util', () => {
     });
 
     describe('equals', () => {
-        it('should pass with undefined');
-        it('should pass with null');
-        it('should pass with strings');
-        it('should pass with numbers');
-        it('should pass with NaN');
-        it('should pass with Infinity');
+
+        it('should pass with undefined', () => {
+            assert.ok(util.equals(undefined, undefined));
+            assert.ok(util.equals());
+        });
+
+        it('should pass with null', () => {
+            assert.ok(util.equals(null, null));
+        });
+
+        it('should pass with strings', () => {
+            assert.ok(util.equals('', ''));
+            assert.ok(util.equals(' ', ' '));
+            assert.ok(util.equals('0', '0'));
+            assert.ok(util.equals('string', 'string'));
+        });
+
+        it('should pass with numbers', () => {
+            assert.ok(util.equals(0, 0));
+            assert.ok(util.equals(1, 1));
+            assert.ok(util.equals(1.109258, 1.109258));
+            assert.ok(util.equals(Number.MAX_SAFE_INTEGER, 9007199254740991));
+        });
+
+        it('should pass with NaN', () => {
+            assert.ok(util.equals(NaN, NaN));
+            assert.ok(util.equals(NaN, 0/0));
+            assert.ok(util.equals(NaN, "string"/0));
+        });
+
+        it('should pass with Infinity', () => {
+            assert.ok(util.equals(Infinity, Infinity));
+            assert.ok(util.equals(Number.POSITIVE_INFINITY, Infinity));
+            assert.ok(util.equals(Number.NEGATIVE_INFINITY, -Infinity));
+        });
+
         it('should pass with +/- 0');
         it('should pass with arrays');
         it('should pass with objects');

@@ -151,8 +151,8 @@ export class Util {
             switch(xType) {
                 case types.number:
                     // triple eq would have compared everything but NaN
-                    if (isNaN(x) && isNaN(y))
-                        return true;
+                    if (isNaN(x) !== isNaN(y))
+                        return false;
                     break;
                 case types.date:
                     if (x.getTime() !== y.getTime())
