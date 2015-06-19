@@ -211,8 +211,10 @@ var Util = (function () {
                 // check for inequalities
                 switch (xType) {
                     case types.number:
-                        // triple eq would have compared everything but NaN
-                        if (isNaN(x) !== isNaN(y)) return false;
+                        if (x !== y) {
+                            if (isNaN(x) && isNaN(y)) return true;
+                            return false;
+                        }
                         break;
                     case types.date:
                         if (x.getTime() !== y.getTime()) return false;
@@ -248,6 +250,8 @@ var Util = (function () {
                         break;
                     case types['function']: // check for properties set on the function
                     case types.object:
+                        if (!_compareObject(x, y)) return false;
+                        break;
                     case types.regexp:
                         if (!_equals(x.toString(), y.toString())) return false;
                         if (!_compareObject(x, y)) return false;
