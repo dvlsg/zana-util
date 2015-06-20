@@ -1,10 +1,14 @@
 {
   "name": "zana-util",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "The utility class for the Zana package",
   "main": "dist/util.js",
   "scripts": {
-    "test": "gulp test"
+    "build": "gulp build",
+    "clean": "gulp clean",
+    "lint": "gulp lint",
+    "test": "gulp test",
+    "watch": "gulp watch"
   },
   "keywords": [
     "deep",
@@ -14,6 +18,10 @@
     "extend",
     "types"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dvlsg/zana-util.git"
+  },
   "author": "Dave Lesage",
   "license": "MIT",
   "devDependencies": {

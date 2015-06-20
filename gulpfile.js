@@ -45,4 +45,4 @@ gulp.task('watch', ['build'], function() {
     gulp.watch(testGlob, ['test']);
 });
 
-gulp.task('default', ['lint']);
+gulp.task('default', ['build']);
