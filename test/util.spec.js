@@ -67,6 +67,20 @@ describe('Util', () => {
             assert.deepEqual(o3, c3);
         });
 
+        it('should make clones of buffers', () => {
+            let b1 = new Buffer(0);
+            let c1 = util.clone(b1);
+            assert.ok(b1.equals(c1));
+
+            let b2 = new Buffer([1, 2, 3, 4, 5]);
+            let c2 = util.clone(b2);
+            assert.ok(b2.equals(c2));
+
+            let b3 = new Buffer('striiiiiiiing');
+            let c3 = util.clone(b3);
+            assert.ok(b3.equals(c3));
+        });
+
         it('should make clones of dates', () => {
             let d1 = new Date();
             let c1 = util.clone(d1);
@@ -464,18 +478,290 @@ describe('Util', () => {
     });
 
     describe('extend', () => {
-        it('will be determined');
+
+        it('should return a reference to the first argument', () => {
+            let o1 = {};
+            let e1 = util.extend(o1);
+            assert.strictEqual(o1, e1);
+        });
+
+        it('should extend objects', () => {
+            let o1 = util.extend(
+                {a: 1, b: 2},
+                {c: 3}
+            );
+            assert.deepEqual(o1, {a: 1, b: 2, c: 3});
+
+            let o2 = util.extend(
+                {a: 1, b: [1, 2, 3]},
+                {a: 9, b: [4, 5, 6, 7]}
+            );
+            assert.deepEqual(o2, {a: 1, b: [1, 2, 3, 7]});
+        });
+
+        it('should extend arrays', () => {
+            let a1 = util.extend(
+                [1, 2, 3],
+                [4, 5, 6, 7, 8]
+            );
+            assert.deepEqual(a1, [1, 2, 3, 7, 8]);
+
+            let a2 = util.extend(
+                [
+                    {a: 1},
+                    {b: 2},
+                    {c: 3}
+                ],
+                [
+                    {a: 4},
+                    {d: 5},
+                    {e: [1, 2, 3]}
+                ]
+            );
+            assert.deepEqual(a2, [{ a: 1 }, { b: 2, d: 5 }, { c: 3, e: [1, 2, 3]}]);
+        });
+
+        it('should extend sets', () => {
+            let s1 = util.extend(
+                new Set([1, 2, 3]),
+                new Set([3, 4, 5])
+            );
+            assert.deepEqual([...s1], [1, 2, 3, 4, 5]);
+            let o1 = {a: 1};
+            let o2 = {b: 2};
+
+            let s2 = util.extend(
+                new Set([o1]),
+                new Set([o2])
+            );
+            assert.deepEqual([...s2], [{a: 1}, {b: 2}]);
+
+            let s3 = util.extend(
+                new Set([o1, o2]),
+                new Set([{b: 2}])
+            );
+            assert.deepEqual([...s3], [{a: 1}, {b: 2}, {b: 2}]);
+        });
+
+        it('should extend maps', () => {
+            let m1 = util.extend(
+                new Map([['a', 1]]),
+                new Map([['b', 2]])
+            );
+            assert.deepEqual([...m1], [['a', 1], ['b', 2]]);
+
+            let o1 = {a: 1};
+            let o2 = {b: 2};
+            let m2 = util.extend(
+                new Map([['a', o1]]),
+                new Map([['a', o2]])
+            );
+            assert.deepEqual([...m2], [['a', {a: 1, b: 2}]]);
+        });
+
+        it('should make shallow references', () => {
+            let o1 = {a: 1};
+            let o2 = {b: 2};
+            let o3 = {c: 3};
+            o1.b = o2;
+            o1.c = o3;
+            let o4 = util.extend(
+                {d: 4},
+                o1
+            );
+            assert.strictEqual(o4.b, o2);
+            assert.strictEqual(o4.c, o3);
+            assert.deepEqual(o4, {a: 1, b: o2, c: o3, d: 4});
+
+            let s1 = util.extend(
+                new Set([]),
+                new Set([o4]),
+                new Set([o4])
+            );
+            assert.ok(s1.has(o4));
+            assert.equal(s1.size, 1);
+        });
+
     });
 
     describe('forEach', () => {
-        it('will be determined');
+
+        it('should iterate over arrays', () => {
+            let arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+            let v = 0;
+            util.forEach(arr, (val, key, ref) => {
+                assert.strictEqual(key, v);
+                assert.strictEqual(val, v);
+                assert.strictEqual(arr, ref);
+                v++;
+            });
+        });
+
+        it('should iterate over objects', () => {
+            let obj = {
+                a: 1,
+                b: 2,
+                c: 3,
+                d: 4,
+                e: 5,
+                f: 6,
+                g: 7,
+                h: 8,
+                i: 9
+            };
+            let v = 1;
+            let k = 'a'.charCodeAt(0);
+            util.forEach(obj, (val, key, ref) => {
+                assert.strictEqual(key.charCodeAt(0), k++);
+                assert.strictEqual(val, v++);
+                assert.strictEqual(obj, ref);
+            });
+        });
+
+        it('should iterate over sets', () => {
+            let set = new Set([5, 6, 7, 8, 9]);
+            let v = 5;
+            util.forEach(set, (val, key, ref) => {
+                assert.strictEqual(key, val); // key === val for set
+                assert.strictEqual(val, v);
+                assert.strictEqual(set, ref);
+                v++;
+            });
+        });
+
+        it('should iterate over maps', () => {
+            let map = new Map([
+                ['a', 1],
+                ['b', 2],
+                ['c', 3],
+                ['d', 4],
+                ['e', 5],
+                ['f', 6],
+                ['g', 7],
+                ['h', 8],
+                ['i', 9]
+            ]);
+            let v = 1;
+            let k = 'a'.charCodeAt(0);
+            util.forEach(map, (val, key, ref) => {
+                assert.strictEqual(key.charCodeAt(0), k++);
+                assert.strictEqual(val, v++);
+                assert.strictEqual(map, ref);
+            });
+        });
+
+        it('should iterate over generators', () => {
+            let gen = function*() {
+                yield 1; yield 2; yield 3; yield 4; yield 5;
+            };
+            let iter = gen();
+            let v = 1;
+            util.forEach(iter, (val, key, ref) => {
+                assert.strictEqual(key, undefined);
+                assert.strictEqual(val, v++);
+                assert.strictEqual(ref, iter);
+            });
+        });
+
+        it('should iterate over anything with Symbol.iterator defined', () => {
+            class A {
+                constructor(...args) {
+                    this.arr = args;
+                }
+                *[Symbol.iterator]() {
+                    for (let val of this.arr)
+                        yield val;
+                }
+                get [Symbol.toStringTag]() {
+                    return 'A';
+                }
+            };
+
+            let a = new A(1, 2, 3, 4, 5);
+            let v = 1;
+            util.forEach(a, (val, key, ref) => {
+                assert.strictEqual(key, undefined);
+                assert.strictEqual(val, v++);
+                assert.strictEqual(a, ref);
+            });
+        });
+
     });
 
     describe('getType', () => {
-        it('will be determined');
+
+        it('should work with undefined', () => {
+            assert.equal(util.getType(undefined), util.types.undefined);
+            assert.equal(util.getType(), util.types.undefined);
+        });
+
+        it('should work with null', () => {
+            assert.equal(util.getType(null), util.types.null);
+        });
+
+        it('should work with numbers', () => {
+            assert.equal(util.getType(0), util.types.number);
+            assert.equal(util.getType(-0), util.types.number);
+            assert.equal(util.getType(+0), util.types.number);
+            assert.equal(util.getType(Infinity), util.types.number);
+            assert.equal(util.getType(-Infinity), util.types.number);
+            assert.equal(util.getType(NaN), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
+            assert.equal(util.getType(new Number()), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
+            assert.equal(util.getType(new Number(1)), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
+            assert.equal(util.getType(new Number("1")), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
+            assert.equal(util.getType(Number(1)), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
+            assert.equal(util.getType(Number.prototype), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
+        });
+
+        it('should work with strings', () => {
+            assert.equal(util.getType(''), util.types.string);
+            assert.equal(util.getType('string'), util.types.string);
+            assert.equal(util.getType(new String()), util.types.string);
+            assert.equal(util.getType(new String('stuff')), util.types.string);
+            assert.equal(util.getType(new String(1)), util.types.string);
+            assert.equal(util.getType(String(1)), util.types.string);
+            assert.equal(util.getType(String.prototype), util.types.string);
+        });
+
+        it('should work with objects', () => {
+            assert.equal(util.getType({}), util.types.object);
+            assert.equal(util.getType({a: 1}), util.types.object);
+            assert.equal(util.getType(new Object()), util.types.object);
+            assert.equal(util.getType(new Object({})), util.types.object);
+            assert.equal(util.getType(Object()), util.types.object);
+            assert.equal(util.getType(Object.prototype), util.types.object);
+        });
+
+        it('should work with arrays', () => {
+            assert.equal(util.getType([]), util.types.array);
+            assert.equal(util.getType(new Array()), util.types.array);
+            assert.equal(util.getType(new Array(1)), util.types.array);
+            assert.equal(util.getType(new Array(1, 2, 3, 4)), util.types.array);
+            assert.equal(util.getType(Array()), util.types.array);
+            assert.equal(util.getType(Array.prototype), util.types.array);
+        });
+
+        it('should work with arguments', () => {
+            assert.equal(util.getType(arguments), util.types.arguments);
+        });
+
+        it('should work with maps', () => {
+            assert.equal(util.getType(new Map()), util.types.map);
+            assert.equal(util.getType(Map.prototype), util.types.map);
+        });
+
+        it('should work with sets', () => {
+            assert.equal(util.getType(new Set()), util.types.set);
+            assert.equal(util.getType(Set.prototype), util.types.set);
+        });
+
+        it('should work with classes by toStringTag', () => {
+            class A {
+                get [Symbol.toStringTag]() { return 'A' };
+            };
+            assert.equal(util.getType(new A()), util.getType(new A()));
+            assert.notEqual(util.getType(new A()), util.types.object);
+        });
     });
 
-    describe('smash', () => {
-        it('will be determined (maybe dropped in favor of extend)');
-    });
 });

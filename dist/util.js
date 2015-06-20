@@ -30,11 +30,11 @@ var _Object$create = require('babel-runtime/core-js/object/create')['default'];
 
 var _Object$keys = require('babel-runtime/core-js/object/keys')['default'];
 
+var _Symbol$iterator = require('babel-runtime/core-js/symbol/iterator')['default'];
+
 var _getIterator = require('babel-runtime/core-js/get-iterator')['default'];
 
 var _Object$entries = require('babel-runtime/core-js/object/entries')['default'];
-
-var _Symbol$iterator = require('babel-runtime/core-js/symbol/iterator')['default'];
 
 _Object$defineProperty(exports, '__esModule', {
     value: true
@@ -110,10 +110,11 @@ var generatorFnProto = _regeneratorRuntime.mark(function callee$0$0() {
     }, callee$0$0, this);
 }).prototype; // this isn't specific enough at this point. leaving for now, possible rework when ES6 is stable.
 var types = {
-    'arguments': getType(arguments) // will this work? not inside a function.. may need to move to iife.
+    'arguments': getType(arguments) // will this work? babel may be accidentally saving us here. swap to iife if necessary
     , 'array': getType([]),
-    'boolean': getType(true),
-    'date': getType(new Date()),
+    'boolean': getType(true)
+    // buffer doesn't work, toString.call(Buffer) returns [object Object]
+    , 'date': getType(new Date()),
     'generator': getType(generatorProto),
     'generatorFunction': getType(generatorFnProto),
     'function': getType(function () {}),
@@ -136,7 +137,11 @@ function setType(key, value) {
 function _clone(source, rc) {
     if (rc.count > rc.maxStackDepth) throw new Error('Stack depth exceeded: ' + rc.stackMaxDepth + '!');
     switch (getType(source)) {
+        // case types.buffer:
+        // return _bufferCopy(source, new Buffer(source.length));
         case types.object:
+            if (Buffer.isBuffer(source)) // boo, extra checks on each object because of bad buffer toStringTag
+                return _bufferCopy(source, new Buffer(source.length));
             return _singleCopy(source, _Object$create(Object.getPrototypeOf(source)), rc);
         case types.array:
             return _singleCopy(source, [], rc);
@@ -187,42 +192,15 @@ function _singleCopy(sourceRef, copyRef, rc) {
     });
 }
 
+function _bufferCopy(sourceRef, copyRef, rc) {
+    sourceRef.copy(copyRef);
+    return copyRef;
+}
+
 function clone(origSource) {
     var origIndex = -1;
     var rc = new RecursiveCounter(1000);
     return _clone.call(null, origSource, rc);
-}
-
-/**
-    Internal method determining whether or not the provided arguments
-    can be smashed or extended together, based on types.
-
-    @param x The first item to compare.
-    @param y The second item to compare.
-    @param rc The running counter for comparing circular references.
-    @returns {boolean} An indication as to whether or not x and y were equal.
-*/
-function isSmashable() {
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-        args[_key] = arguments[_key];
-    }
-
-    if (args.length < 1) return false;
-
-    var baseType = getType(args[0]);
-    if (!(baseType === types.array || baseType === types.object || baseType === types.set || baseType === types.map || baseType === types['function'])) {
-        return false;
-    }
-
-    if (baseType === types['function']) baseType = types.object; // allow functions to be smashed onto objects, and vice versa
-
-    for (var i = 1; i < args.length; i++) {
-        var targetType = getType(args[i]);
-        if (targetType === types['function']) targetType = types.object; // allow functions to be smashed onto objects, and vice versa
-
-        if (targetType !== baseType) return false;
-    }
-    return true;
 }
 
 /**
@@ -312,7 +290,13 @@ function _equals(x, y, rc) {
             if (x !== y) return false; // other than that, just use reference equality for now
             break;
         case types.object:
-            if (!_compareObject(x, y, rc)) return false;
+            if (Buffer.isBuffer(x)) {
+                if (!Buffer.isBuffer(y)) return false;
+                if (x.length !== y.length) return false;
+                if (!x.equals(y)) return false;
+            } else {
+                if (!_compareObject(x, y, rc)) return false;
+            }
             break;
         case types.regexp:
             if (!_equals(x.toString(), y.toString(), rc)) return false;
@@ -380,40 +364,71 @@ function equals(item1, item2) {
 */
 
 function forEach(item, method, context) {
-    var itemType = getType(item);
-    switch (itemType) {
+    var type = getType(item);
+    switch (type) {
         case types.date:
         case types['function']:
         case types.object:
         case types.regexp:
-            var _iteratorNormalCompletion = true;
-            var _didIteratorError = false;
-            var _iteratorError = undefined;
+            if (!item[_Symbol$iterator]) {
+                var _iteratorNormalCompletion = true;
+                var _didIteratorError = false;
+                var _iteratorError = undefined;
 
-            try {
-                for (var _iterator = _getIterator(_Object$entries(item)), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                    var _step$value = _slicedToArray(_step.value, 2);
-
-                    var key = _step$value[0];
-                    var value = _step$value[1];
-
-                    if (item.hasOwnProperty(key)) method.call(context, value, key, item);
-                }
-            } catch (err) {
-                _didIteratorError = true;
-                _iteratorError = err;
-            } finally {
                 try {
-                    if (!_iteratorNormalCompletion && _iterator['return']) {
-                        _iterator['return']();
+                    for (var _iterator = _getIterator(_Object$entries(item)), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                        var _step$value = _slicedToArray(_step.value, 2);
+
+                        var key = _step$value[0];
+                        var value = _step$value[1];
+
+                        if (item.hasOwnProperty(key)) method.call(context, value, key, item);
                     }
+                } catch (err) {
+                    _didIteratorError = true;
+                    _iteratorError = err;
                 } finally {
-                    if (_didIteratorError) {
-                        throw _iteratorError;
+                    try {
+                        if (!_iteratorNormalCompletion && _iterator['return']) {
+                            _iterator['return']();
+                        }
+                    } finally {
+                        if (_didIteratorError) {
+                            throw _iteratorError;
+                        }
+                    }
+                }
+            } else {
+                // note: generator is being mistakenly counted as an object
+                // so we need to take care of it here. ideally,
+                // we would be able to use the default for performance reasons,
+                // but that's not working with getType as it is defined
+                var _iteratorNormalCompletion2 = true;
+                var _didIteratorError2 = false;
+                var _iteratorError2 = undefined;
+
+                try {
+                    for (var _iterator2 = _getIterator(item), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                        var value = _step2.value;
+
+                        // do we want to check if value is array, and spread it across value/key?
+                        method.call(context, value, undefined, item);
+                    }
+                } catch (err) {
+                    _didIteratorError2 = true;
+                    _iteratorError2 = err;
+                } finally {
+                    try {
+                        if (!_iteratorNormalCompletion2 && _iterator2['return']) {
+                            _iterator2['return']();
+                        }
+                    } finally {
+                        if (_didIteratorError2) {
+                            throw _iteratorError2;
+                        }
                     }
                 }
             }
-
             break;
         case types.arguments:
         case types.array:
@@ -421,47 +436,18 @@ function forEach(item, method, context) {
                 method.call(context, item[i], i, item);
             }break;
         case types.map:
-            // weakmap is not iterable (?)
-            var _iteratorNormalCompletion2 = true;
-            var _didIteratorError2 = false;
-            var _iteratorError2 = undefined;
-
-            try {
-                for (var _iterator2 = _getIterator(item), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                    var _step2$value = _slicedToArray(_step2.value, 2);
-
-                    var key = _step2$value[0];
-                    var value = _step2$value[1];
-
-                    method.call(context, value, key, item);
-                }
-            } catch (err) {
-                _didIteratorError2 = true;
-                _iteratorError2 = err;
-            } finally {
-                try {
-                    if (!_iteratorNormalCompletion2 && _iterator2['return']) {
-                        _iterator2['return']();
-                    }
-                } finally {
-                    if (_didIteratorError2) {
-                        throw _iteratorError2;
-                    }
-                }
-            }
-
-            break;
-        case types.set:
-            // weakset is not iterable (?)
             var _iteratorNormalCompletion3 = true;
             var _didIteratorError3 = false;
             var _iteratorError3 = undefined;
 
             try {
                 for (var _iterator3 = _getIterator(item), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-                    var value = _step3.value;
-                    // treat keys and values as equivalent for sets
-                    method.call(context, value, value, item);
+                    var _step3$value = _slicedToArray(_step3.value, 2);
+
+                    var key = _step3$value[0];
+                    var value = _step3$value[1];
+
+                    method.call(context, value, key, item);
                 }
             } catch (err) {
                 _didIteratorError3 = true;
@@ -479,30 +465,57 @@ function forEach(item, method, context) {
             }
 
             break;
+        case types.set:
+            var _iteratorNormalCompletion4 = true;
+            var _didIteratorError4 = false;
+            var _iteratorError4 = undefined;
+
+            try {
+                for (var _iterator4 = _getIterator(item), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                    var value = _step4.value;
+                    // treat keys and values as equivalent for sets
+                    method.call(context, value, value, item);
+                }
+            } catch (err) {
+                _didIteratorError4 = true;
+                _iteratorError4 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion4 && _iterator4['return']) {
+                        _iterator4['return']();
+                    }
+                } finally {
+                    if (_didIteratorError4) {
+                        throw _iteratorError4;
+                    }
+                }
+            }
+
+            break;
         default:
-            // fallback to attempting to use any Symbol.iterator?
+            // if unknown type, then check for Symbol.iterator
             if (item[_Symbol$iterator]) {
-                var _iteratorNormalCompletion4 = true;
-                var _didIteratorError4 = false;
-                var _iteratorError4 = undefined;
+                var _iteratorNormalCompletion5 = true;
+                var _didIteratorError5 = false;
+                var _iteratorError5 = undefined;
 
                 try {
-                    for (var _iterator4 = _getIterator(item), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-                        var value = _step4.value;
+                    for (var _iterator5 = _getIterator(item), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+                        var value = _step5.value;
 
                         method.call(context, value, undefined, item);
                     }
                 } catch (err) {
-                    _didIteratorError4 = true;
-                    _iteratorError4 = err;
+                    _didIteratorError5 = true;
+                    _iteratorError5 = err;
                 } finally {
                     try {
-                        if (!_iteratorNormalCompletion4 && _iterator4['return']) {
-                            _iterator4['return']();
+                        if (!_iteratorNormalCompletion5 && _iterator5['return']) {
+                            _iterator5['return']();
                         }
                     } finally {
-                        if (_didIteratorError4) {
-                            throw _iteratorError4;
+                        if (_didIteratorError5) {
+                            throw _iteratorError5;
                         }
                     }
                 }
@@ -510,6 +523,39 @@ function forEach(item, method, context) {
             break;
     }
     return item;
+}
+
+/**
+    Internal method determining whether or not the provided arguments
+    can be smashed or extended together, based on types.
+
+    @param x The first item to compare.
+    @param y The second item to compare.
+    @param rc The running counter for comparing circular references.
+    @returns {boolean} An indication as to whether or not x and y were equal.
+*/
+function isSmashable() {
+    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+    }
+
+    // this is a fairly expensive call. find a way to optimize further?
+    if (args.length < 1) return false;
+
+    var baseType = getType(args[0]);
+    if (!(baseType === types.array || baseType === types.object || baseType === types.set || baseType === types.map || baseType === types['function'])) {
+        return false;
+    }
+
+    if (baseType === types['function']) baseType = types.object; // allow functions to be smashed onto objects, and vice versa
+
+    for (var i = 1; i < args.length; i++) {
+        var targetType = getType(args[i]);
+        if (targetType === types['function']) targetType = types.object; // allow functions to be smashed onto objects, and vice versa
+
+        if (targetType !== baseType) return false;
+    }
+    return baseType;
 }
 
 /**
@@ -522,18 +568,34 @@ function forEach(item, method, context) {
     @returns {any} The reference to the first item.
 */
 function _extend(a, b) {
-    forEach(b, function (val, key) {
+    forEach(b, function (bVal, key) {
         // will most likely need to be altered to accomodate maps and sets
-        if (a[key] !== null && a[key] !== undefined) a[key] = b[key];else if (isSmashable(a[key], b[key])) // find a way to move isSmashable internal
-            _extend(a[key], b[key]);
+        // let type = isSmashable(a[key], b[key]);
+        var type = getType(a);
+        switch (type) {
+            case types.array:
+            case types.object:
+                if (a[key] === undefined || a[key] === null) a[key] = b[key];else if (isSmashable(a[key], b[key])) _extend(a[key], b[key]);
+                break;
+            case types.set:
+                if (!a.has(bVal)) a.add(bVal);
+                break;
+            case types.map:
+                if (!a.has(key)) a.set(key, bVal);else {
+                    var aVal = a.get(key);
+                    if (aVal === undefined || aVal === null) a.set(key, bVal);else if (isSmashable(aVal, bVal)) _extend(aVal, bVal);
+                }
+                break;
+        }
     });
     return a;
 }
 
 /**
     Extends the properties on the provided arguments into the original item.
-    Any properties on the tail arguments will not overwrite
-    any properties on the first argument, and any references will be shallow.
+    Any properties on the tail arguments will not overwrite any properties
+    on the first argument unless they are null or undefined,
+    and any non primitive references will be shallow.
 
     @param {any} a The target to be extended.
     @param {...any} rest The tail items to extend onto the target.
@@ -602,6 +664,6 @@ exports['default'] = {
     extend: extend,
     forEach: forEach,
     getType: getType,
-    smash: smash,
+    // smash,
     types: types
 };

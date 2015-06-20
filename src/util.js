@@ -44,9 +44,10 @@ export function getType(val) {
 let generatorProto   = (function*(){}()).prototype;
 let generatorFnProto = (function*(){}).prototype; // this isn't specific enough at this point. leaving for now, possible rework when ES6 is stable.
 let types = {
-      'arguments'         : getType(arguments) // will this work? not inside a function.. may need to move to iife.
+      'arguments'         : getType(arguments) // will this work? babel may be accidentally saving us here. swap to iife if necessary
     , 'array'             : getType([])
     , 'boolean'           : getType(true)
+    // buffer doesn't work, toString.call(Buffer) returns [object Object]
     , 'date'              : getType(new Date())
     , 'generator'         : getType(generatorProto)
     , 'generatorFunction' : getType(generatorFnProto)
@@ -70,7 +71,11 @@ export function setType(key, value) {
 function _clone(source, rc) {
     if (rc.count > rc.maxStackDepth) throw new Error("Stack depth exceeded: " + rc.stackMaxDepth + "!");
     switch (getType(source)) {
+        // case types.buffer:
+            // return _bufferCopy(source, new Buffer(source.length));
         case types.object:
+            if (Buffer.isBuffer(source)) // boo, extra checks on each object because of bad buffer toStringTag
+                return _bufferCopy(source, new Buffer(source.length));
             return _singleCopy(source, Object.create(Object.getPrototypeOf(source)), rc);
         case types.array:
             return _singleCopy(source, [], rc);
@@ -121,47 +126,15 @@ function _singleCopy(sourceRef, copyRef, rc) {
     });
 }
 
+function _bufferCopy(sourceRef, copyRef, rc) {
+    sourceRef.copy(copyRef);
+    return copyRef;
+}
+
 export function clone(origSource) {
     let origIndex = -1;
     let rc = new RecursiveCounter(1000);
     return _clone.call(null, origSource, rc);
-}
-
-/**
-    Internal method determining whether or not the provided arguments
-    can be smashed or extended together, based on types.
-
-    @param x The first item to compare.
-    @param y The second item to compare.
-    @param rc The running counter for comparing circular references.
-    @returns {boolean} An indication as to whether or not x and y were equal.
-*/
-function isSmashable(...args) {
-    if (args.length < 1)
-        return false;
-
-    let baseType = getType(args[0]);
-    if (!(
-               baseType === types.array
-            || baseType === types.object
-            || baseType === types.set
-            || baseType === types.map
-            || baseType === types.function)) {
-        return false;
-    }
-
-    if (baseType === types.function)
-        baseType = types.object; // allow functions to be smashed onto objects, and vice versa
-
-    for (let i = 1; i < args.length; i++) {
-        let targetType = getType(args[i]);
-        if (targetType === types.function)
-            targetType = types.object; // allow functions to be smashed onto objects, and vice versa
-
-        if (targetType !== baseType)
-            return false;
-    }
-    return true;
 }
 
 /**
@@ -264,8 +237,18 @@ function _equals(x, y, rc) {
                 return false; // other than that, just use reference equality for now
             break;
         case types.object:
-            if (!_compareObject(x, y, rc))
-                return false;
+            if (Buffer.isBuffer(x)) {
+                if (!Buffer.isBuffer(y))
+                    return false;
+                if (x.length !== y.length)
+                    return false;
+                if (!x.equals(y))
+                    return false;
+            }
+            else {
+                if (!_compareObject(x, y, rc))
+                    return false;
+            }
             break;
         case types.regexp:
             if (!_equals(x.toString(), y.toString(), rc))
@@ -340,15 +323,27 @@ export function equals(item1, item2) {
     @returns {any} A reference to the original item.
 */
 export function forEach(item, method, context) {
-    let itemType = getType(item);
-    switch(itemType) {
+    let type = getType(item);
+    switch(type) {
         case types.date:
         case types.function:
         case types.object:
         case types.regexp:
-            for (let [key, value] of Object.entries(item)) {
-                if (item.hasOwnProperty(key))
-                    method.call(context, value, key, item);
+            if (!item[Symbol.iterator]) {
+                for (let [key, value] of Object.entries(item)) {
+                    if (item.hasOwnProperty(key))
+                        method.call(context, value, key, item);
+                }
+            }
+            else {
+                // note: generator is being mistakenly counted as an object
+                // so we need to take care of it here. ideally,
+                // we would be able to use the default for performance reasons,
+                // but that's not working with getType as it is defined
+                for (let value of item) {
+                    // do we want to check if value is array, and spread it across value/key?
+                    method.call(context, value, undefined, item);
+                }
             }
             break;
         case types.arguments:
@@ -356,15 +351,16 @@ export function forEach(item, method, context) {
             for (let i = 0; i < item.length; i++)
                 method.call(context, item[i], i, item);
             break;
-        case types.map: // weakmap is not iterable (?)
+        case types.map:
             for (let [key, value] of item)
                 method.call(context, value, key, item);
             break;
-        case types.set: // weakset is not iterable (?)
+        case types.set:
             for (let value of item) // treat keys and values as equivalent for sets
                 method.call(context, value, value, item);
             break;
-        default: // fallback to attempting to use any Symbol.iterator?
+        default:
+            // if unknown type, then check for Symbol.iterator
             if (item[Symbol.iterator]) {
                 for (let value of item)
                     method.call(context, value, undefined, item);
@@ -372,6 +368,44 @@ export function forEach(item, method, context) {
             break;
     }
     return item;
+}
+
+/**
+    Internal method determining whether or not the provided arguments
+    can be smashed or extended together, based on types.
+
+    @param x The first item to compare.
+    @param y The second item to compare.
+    @param rc The running counter for comparing circular references.
+    @returns {boolean} An indication as to whether or not x and y were equal.
+*/
+function isSmashable(...args) {
+    // this is a fairly expensive call. find a way to optimize further?
+    if (args.length < 1)
+        return false;
+
+    let baseType = getType(args[0]);
+    if (!(
+               baseType === types.array
+            || baseType === types.object
+            || baseType === types.set
+            || baseType === types.map
+            || baseType === types.function)) {
+        return false;
+    }
+
+    if (baseType === types.function)
+        baseType = types.object; // allow functions to be smashed onto objects, and vice versa
+
+    for (let i = 1; i < args.length; i++) {
+        let targetType = getType(args[i]);
+        if (targetType === types.function)
+            targetType = types.object; // allow functions to be smashed onto objects, and vice versa
+
+        if (targetType !== baseType)
+            return false;
+    }
+    return baseType;
 }
 
 /**
@@ -384,20 +418,43 @@ export function forEach(item, method, context) {
     @returns {any} The reference to the first item.
 */
 function _extend(a, b) {
-    forEach(b, function(val, key) {
+    forEach(b, (bVal, key) => {
         // will most likely need to be altered to accomodate maps and sets
-        if (a[key] !== null && a[key] !== undefined)
-            a[key] = b[key];
-        else if (isSmashable(a[key], b[key])) // find a way to move isSmashable internal
-            _extend(a[key], b[key]);
+        // let type = isSmashable(a[key], b[key]);
+        let type = getType(a);
+        switch(type) {
+            case types.array:
+            case types.object:
+                if (a[key] === undefined || a[key] === null)
+                    a[key] = b[key];
+                else if (isSmashable(a[key], b[key]))
+                    _extend(a[key], b[key]);
+                break;
+            case types.set:
+                if (!a.has(bVal))
+                    a.add(bVal);
+                break;
+            case types.map:
+                if (!a.has(key))
+                    a.set(key, bVal);
+                else {
+                    let aVal = a.get(key);
+                    if (aVal === undefined || aVal === null)
+                        a.set(key, bVal);
+                    else if (isSmashable(aVal, bVal))
+                        _extend(aVal, bVal);
+                }
+                break;
+        }
     });
     return a;
 }
 
 /**
     Extends the properties on the provided arguments into the original item.
-    Any properties on the tail arguments will not overwrite
-    any properties on the first argument, and any references will be shallow.
+    Any properties on the tail arguments will not overwrite any properties
+    on the first argument unless they are null or undefined,
+    and any non primitive references will be shallow.
 
     @param {any} a The target to be extended.
     @param {...any} rest The tail items to extend onto the target.
@@ -455,6 +512,6 @@ export default {
     extend,
     forEach,
     getType,
-    smash,
+    // smash,
     types
 };
