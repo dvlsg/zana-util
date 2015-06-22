@@ -14,9 +14,9 @@ var _toConsumableArray = require('babel-runtime/helpers/to-consumable-array')['d
 
 var _slicedToArray = require('babel-runtime/helpers/sliced-to-array')['default'];
 
-var _Object$defineProperty = require('babel-runtime/core-js/object/define-property')['default'];
-
 var _regeneratorRuntime = require('babel-runtime/regenerator')['default'];
+
+var _Object$defineProperty = require('babel-runtime/core-js/object/define-property')['default'];
 
 var _Map = require('babel-runtime/core-js/map')['default'];
 
@@ -30,13 +30,17 @@ var _WeakSet = require('babel-runtime/core-js/weak-set')['default'];
 
 var _Object$create = require('babel-runtime/core-js/object/create')['default'];
 
-var _Object$keys = require('babel-runtime/core-js/object/keys')['default'];
-
-var _Symbol$iterator = require('babel-runtime/core-js/symbol/iterator')['default'];
+var _Reflect$getPrototypeOf = require('babel-runtime/core-js/reflect/get-prototype-of')['default'];
 
 var _getIterator = require('babel-runtime/core-js/get-iterator')['default'];
 
 var _Object$entries = require('babel-runtime/core-js/object/entries')['default'];
+
+var _Object$getOwnPropertySymbols = require('babel-runtime/core-js/object/get-own-property-symbols')['default'];
+
+var _Object$keys = require('babel-runtime/core-js/object/keys')['default'];
+
+var _Symbol$iterator = require('babel-runtime/core-js/symbol/iterator')['default'];
 
 _Object$defineProperty(exports, '__esModule', {
     value: true
@@ -46,9 +50,11 @@ exports.getType = getType;
 exports.setType = setType;
 exports.clone = clone;
 exports.equals = equals;
+exports.each = each;
 exports.forEach = forEach;
 exports.extend = extend;
 exports.smash = smash;
+var marked0$0 = [each].map(_regeneratorRuntime.mark);
 var toString = Object.prototype.toString;
 var log = console.log.bind(console); /* eslint no-unused-vars: 0 */
 
@@ -142,10 +148,7 @@ function _clone(source, rc) {
     switch (getType(source)) {
         // case types.buffer:
         // return _bufferCopy(source, new Buffer(source.length));
-        case types.object:
-            if (Buffer.isBuffer(source)) // boo, extra checks on each object because of bad buffer toStringTag
-                return _bufferCopy(source, new Buffer(source.length));
-            return _singleCopy(source, _Object$create(Object.getPrototypeOf(source)), rc);
+        // case types.object:
         case types.array:
             return _singleCopy(source, [], rc);
         case types.regexp:
@@ -157,9 +160,17 @@ function _clone(source, rc) {
         // return _singleCopy(source, new Set());
         case types.map:
             return _mapCopy(source, new _Map(), rc); // might not work / need a _mapCopy?
-        default:
-            // need to handle functions/generators differently? tbd.
+        case types.number:
+        case types.undefined:
+        case types['null']:
+        case types.string:
             return source;
+        case types['function']:
+            return source; // probably not a great idea. bind somehow?
+        case types.object:
+        default:
+            if (Buffer.isBuffer(source)) // boo, extra checks on each object because of bad buffer toStringTag
+                return _bufferCopy(source, new Buffer(source.length));else return _objectCopy(source, _Object$create(_Reflect$getPrototypeOf(source)), rc);
     }
 }
 
@@ -172,9 +183,70 @@ function _instanceCopy(sourceRef, copyRef, rc, copier) {
         });
         rc.pop();
         return copyRef;
-    } else {
-        return rc.yStack[origIndex];
-    }
+    } else return rc.yStack[origIndex];
+}
+
+function _objectCopy(sourceRef, copyRef, rc) {
+    var origIndex = rc.xStack.indexOf(sourceRef);
+    if (origIndex === -1) {
+        rc.push(sourceRef, copyRef);
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+            for (var _iterator = _getIterator(_Object$entries(sourceRef)), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                var _step$value = _slicedToArray(_step.value, 2);
+
+                var key = _step$value[0];
+                var val = _step$value[1];
+
+                copyRef[key] = _clone(val, rc);
+            }
+        } catch (err) {
+            _didIteratorError = true;
+            _iteratorError = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion && _iterator['return']) {
+                    _iterator['return']();
+                }
+            } finally {
+                if (_didIteratorError) {
+                    throw _iteratorError;
+                }
+            }
+        }
+
+        var symbols = _Object$getOwnPropertySymbols(sourceRef);
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
+
+        try {
+            for (var _iterator2 = _getIterator(symbols), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                var symbol = _step2.value;
+
+                copyRef[symbol] = _clone(sourceRef[symbol], rc);
+            }
+        } catch (err) {
+            _didIteratorError2 = true;
+            _iteratorError2 = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion2 && _iterator2['return']) {
+                    _iterator2['return']();
+                }
+            } finally {
+                if (_didIteratorError2) {
+                    throw _iteratorError2;
+                }
+            }
+        }
+
+        rc.pop();
+        return copyRef;
+    } else return rc.yStack[origIndex];
 }
 
 function _setCopy(sourceRef, copyRef, rc) {
@@ -359,6 +431,247 @@ function equals(item1, item2) {
     return _equals.call(null, item1, item2, rc);
 }
 
+function each(item) {
+    var type, _iteratorNormalCompletion3, _didIteratorError3, _iteratorError3, _iterator3, _step3, value, i, _iteratorNormalCompletion4, _didIteratorError4, _iteratorError4, _iterator4, _step4, _iteratorNormalCompletion5, _didIteratorError5, _iteratorError5, _iterator5, _step5;
+
+    return _regeneratorRuntime.wrap(function each$(context$1$0) {
+        while (1) switch (context$1$0.prev = context$1$0.next) {
+            case 0:
+                type = getType(item);
+                context$1$0.t0 = type;
+                context$1$0.next = context$1$0.t0 === types.date ? 4 : context$1$0.t0 === types['function'] ? 4 : context$1$0.t0 === types.object ? 4 : context$1$0.t0 === types.regexp ? 4 : context$1$0.t0 === types.arguments ? 35 : context$1$0.t0 === types.array ? 35 : context$1$0.t0 === types.map ? 43 : context$1$0.t0 === types.set ? 45 : 72;
+                break;
+
+            case 4:
+                if (item[_Symbol$iterator]) {
+                    context$1$0.next = 8;
+                    break;
+                }
+
+                return context$1$0.delegateYield(_Object$entries(item), 't1', 6);
+
+            case 6:
+                context$1$0.next = 34;
+                break;
+
+            case 8:
+                _iteratorNormalCompletion3 = true;
+                _didIteratorError3 = false;
+                _iteratorError3 = undefined;
+                context$1$0.prev = 11;
+                _iterator3 = _getIterator(item);
+
+            case 13:
+                if (_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done) {
+                    context$1$0.next = 20;
+                    break;
+                }
+
+                value = _step3.value;
+                context$1$0.next = 17;
+                return [undefined, value];
+
+            case 17:
+                _iteratorNormalCompletion3 = true;
+                context$1$0.next = 13;
+                break;
+
+            case 20:
+                context$1$0.next = 26;
+                break;
+
+            case 22:
+                context$1$0.prev = 22;
+                context$1$0.t2 = context$1$0['catch'](11);
+                _didIteratorError3 = true;
+                _iteratorError3 = context$1$0.t2;
+
+            case 26:
+                context$1$0.prev = 26;
+                context$1$0.prev = 27;
+
+                if (!_iteratorNormalCompletion3 && _iterator3['return']) {
+                    _iterator3['return']();
+                }
+
+            case 29:
+                context$1$0.prev = 29;
+
+                if (!_didIteratorError3) {
+                    context$1$0.next = 32;
+                    break;
+                }
+
+                throw _iteratorError3;
+
+            case 32:
+                return context$1$0.finish(29);
+
+            case 33:
+                return context$1$0.finish(26);
+
+            case 34:
+                return context$1$0.abrupt('break', 100);
+
+            case 35:
+                i = 0;
+
+            case 36:
+                if (!(i < item.length)) {
+                    context$1$0.next = 42;
+                    break;
+                }
+
+                context$1$0.next = 39;
+                return [i, item[i]];
+
+            case 39:
+                i++;
+                context$1$0.next = 36;
+                break;
+
+            case 42:
+                return context$1$0.abrupt('break', 100);
+
+            case 43:
+                return context$1$0.delegateYield(item, 't3', 44);
+
+            case 44:
+                return context$1$0.abrupt('break', 100);
+
+            case 45:
+                _iteratorNormalCompletion4 = true;
+                _didIteratorError4 = false;
+                _iteratorError4 = undefined;
+                context$1$0.prev = 48;
+                _iterator4 = _getIterator(item);
+
+            case 50:
+                if (_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done) {
+                    context$1$0.next = 57;
+                    break;
+                }
+
+                value = _step4.value;
+                context$1$0.next = 54;
+                return [value, value];
+
+            case 54:
+                _iteratorNormalCompletion4 = true;
+                context$1$0.next = 50;
+                break;
+
+            case 57:
+                context$1$0.next = 63;
+                break;
+
+            case 59:
+                context$1$0.prev = 59;
+                context$1$0.t4 = context$1$0['catch'](48);
+                _didIteratorError4 = true;
+                _iteratorError4 = context$1$0.t4;
+
+            case 63:
+                context$1$0.prev = 63;
+                context$1$0.prev = 64;
+
+                if (!_iteratorNormalCompletion4 && _iterator4['return']) {
+                    _iterator4['return']();
+                }
+
+            case 66:
+                context$1$0.prev = 66;
+
+                if (!_didIteratorError4) {
+                    context$1$0.next = 69;
+                    break;
+                }
+
+                throw _iteratorError4;
+
+            case 69:
+                return context$1$0.finish(66);
+
+            case 70:
+                return context$1$0.finish(63);
+
+            case 71:
+                return context$1$0.abrupt('break', 100);
+
+            case 72:
+                if (!item[_Symbol$iterator]) {
+                    context$1$0.next = 99;
+                    break;
+                }
+
+                _iteratorNormalCompletion5 = true;
+                _didIteratorError5 = false;
+                _iteratorError5 = undefined;
+                context$1$0.prev = 76;
+                _iterator5 = _getIterator(item);
+
+            case 78:
+                if (_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done) {
+                    context$1$0.next = 85;
+                    break;
+                }
+
+                value = _step5.value;
+                context$1$0.next = 82;
+                return [undefined, value];
+
+            case 82:
+                _iteratorNormalCompletion5 = true;
+                context$1$0.next = 78;
+                break;
+
+            case 85:
+                context$1$0.next = 91;
+                break;
+
+            case 87:
+                context$1$0.prev = 87;
+                context$1$0.t5 = context$1$0['catch'](76);
+                _didIteratorError5 = true;
+                _iteratorError5 = context$1$0.t5;
+
+            case 91:
+                context$1$0.prev = 91;
+                context$1$0.prev = 92;
+
+                if (!_iteratorNormalCompletion5 && _iterator5['return']) {
+                    _iterator5['return']();
+                }
+
+            case 94:
+                context$1$0.prev = 94;
+
+                if (!_didIteratorError5) {
+                    context$1$0.next = 97;
+                    break;
+                }
+
+                throw _iteratorError5;
+
+            case 97:
+                return context$1$0.finish(94);
+
+            case 98:
+                return context$1$0.finish(91);
+
+            case 99:
+                return context$1$0.abrupt('break', 100);
+
+            case 100:
+                return context$1$0.abrupt('return', item);
+
+            case 101:
+            case 'end':
+                return context$1$0.stop();
+        }
+    }, marked0$0[0], this, [[11, 22, 26, 34], [27,, 29, 33], [48, 59, 63, 71], [64,, 66, 70], [76, 87, 91, 99], [92,, 94, 98]]);
+}
+
 /**
     Generic interface for looping over an iterable item,
     and executing a provided method for each value.
@@ -377,60 +690,57 @@ function forEach(item, method, context) {
         case types.object:
         case types.regexp:
             if (!item[_Symbol$iterator]) {
-                var _iteratorNormalCompletion = true;
-                var _didIteratorError = false;
-                var _iteratorError = undefined;
+                var _iteratorNormalCompletion6 = true;
+                var _didIteratorError6 = false;
+                var _iteratorError6 = undefined;
 
                 try {
-                    for (var _iterator = _getIterator(_Object$entries(item)), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                        var _step$value = _slicedToArray(_step.value, 2);
+                    for (var _iterator6 = _getIterator(_Object$entries(item)), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+                        var _step6$value = _slicedToArray(_step6.value, 2);
 
-                        var key = _step$value[0];
-                        var value = _step$value[1];
+                        var key = _step6$value[0];
+                        var value = _step6$value[1];
 
                         if (item.hasOwnProperty(key)) method.call(context, value, key, item);
                     }
                 } catch (err) {
-                    _didIteratorError = true;
-                    _iteratorError = err;
+                    _didIteratorError6 = true;
+                    _iteratorError6 = err;
                 } finally {
                     try {
-                        if (!_iteratorNormalCompletion && _iterator['return']) {
-                            _iterator['return']();
+                        if (!_iteratorNormalCompletion6 && _iterator6['return']) {
+                            _iterator6['return']();
                         }
                     } finally {
-                        if (_didIteratorError) {
-                            throw _iteratorError;
+                        if (_didIteratorError6) {
+                            throw _iteratorError6;
                         }
                     }
                 }
             } else {
-                // note: generator is being mistakenly counted as an object
-                // so we need to take care of it here. ideally,
-                // we would be able to use the default for performance reasons,
-                // but that's not working with getType as it is defined
-                var _iteratorNormalCompletion2 = true;
-                var _didIteratorError2 = false;
-                var _iteratorError2 = undefined;
+                // shenanigans
+                var _iteratorNormalCompletion7 = true;
+                var _didIteratorError7 = false;
+                var _iteratorError7 = undefined;
 
                 try {
-                    for (var _iterator2 = _getIterator(item), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                        var value = _step2.value;
+                    for (var _iterator7 = _getIterator(item), _step7; !(_iteratorNormalCompletion7 = (_step7 = _iterator7.next()).done); _iteratorNormalCompletion7 = true) {
+                        var value = _step7.value;
 
                         // do we want to check if value is array, and spread it across value/key?
                         method.call(context, value, undefined, item);
                     }
                 } catch (err) {
-                    _didIteratorError2 = true;
-                    _iteratorError2 = err;
+                    _didIteratorError7 = true;
+                    _iteratorError7 = err;
                 } finally {
                     try {
-                        if (!_iteratorNormalCompletion2 && _iterator2['return']) {
-                            _iterator2['return']();
+                        if (!_iteratorNormalCompletion7 && _iterator7['return']) {
+                            _iterator7['return']();
                         }
                     } finally {
-                        if (_didIteratorError2) {
-                            throw _iteratorError2;
+                        if (_didIteratorError7) {
+                            throw _iteratorError7;
                         }
                     }
                 }
@@ -442,57 +752,57 @@ function forEach(item, method, context) {
                 method.call(context, item[i], i, item);
             }break;
         case types.map:
-            var _iteratorNormalCompletion3 = true;
-            var _didIteratorError3 = false;
-            var _iteratorError3 = undefined;
+            var _iteratorNormalCompletion8 = true;
+            var _didIteratorError8 = false;
+            var _iteratorError8 = undefined;
 
             try {
-                for (var _iterator3 = _getIterator(item), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-                    var _step3$value = _slicedToArray(_step3.value, 2);
+                for (var _iterator8 = _getIterator(item), _step8; !(_iteratorNormalCompletion8 = (_step8 = _iterator8.next()).done); _iteratorNormalCompletion8 = true) {
+                    var _step8$value = _slicedToArray(_step8.value, 2);
 
-                    var key = _step3$value[0];
-                    var value = _step3$value[1];
+                    var key = _step8$value[0];
+                    var value = _step8$value[1];
 
                     method.call(context, value, key, item);
                 }
             } catch (err) {
-                _didIteratorError3 = true;
-                _iteratorError3 = err;
+                _didIteratorError8 = true;
+                _iteratorError8 = err;
             } finally {
                 try {
-                    if (!_iteratorNormalCompletion3 && _iterator3['return']) {
-                        _iterator3['return']();
+                    if (!_iteratorNormalCompletion8 && _iterator8['return']) {
+                        _iterator8['return']();
                     }
                 } finally {
-                    if (_didIteratorError3) {
-                        throw _iteratorError3;
+                    if (_didIteratorError8) {
+                        throw _iteratorError8;
                     }
                 }
             }
 
             break;
         case types.set:
-            var _iteratorNormalCompletion4 = true;
-            var _didIteratorError4 = false;
-            var _iteratorError4 = undefined;
+            var _iteratorNormalCompletion9 = true;
+            var _didIteratorError9 = false;
+            var _iteratorError9 = undefined;
 
             try {
-                for (var _iterator4 = _getIterator(item), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-                    var value = _step4.value;
+                for (var _iterator9 = _getIterator(item), _step9; !(_iteratorNormalCompletion9 = (_step9 = _iterator9.next()).done); _iteratorNormalCompletion9 = true) {
+                    var value = _step9.value;
                     // treat keys and values as equivalent for sets
                     method.call(context, value, value, item);
                 }
             } catch (err) {
-                _didIteratorError4 = true;
-                _iteratorError4 = err;
+                _didIteratorError9 = true;
+                _iteratorError9 = err;
             } finally {
                 try {
-                    if (!_iteratorNormalCompletion4 && _iterator4['return']) {
-                        _iterator4['return']();
+                    if (!_iteratorNormalCompletion9 && _iterator9['return']) {
+                        _iterator9['return']();
                     }
                 } finally {
-                    if (_didIteratorError4) {
-                        throw _iteratorError4;
+                    if (_didIteratorError9) {
+                        throw _iteratorError9;
                     }
                 }
             }
@@ -501,27 +811,27 @@ function forEach(item, method, context) {
         default:
             // if unknown type, then check for Symbol.iterator
             if (item[_Symbol$iterator]) {
-                var _iteratorNormalCompletion5 = true;
-                var _didIteratorError5 = false;
-                var _iteratorError5 = undefined;
+                var _iteratorNormalCompletion10 = true;
+                var _didIteratorError10 = false;
+                var _iteratorError10 = undefined;
 
                 try {
-                    for (var _iterator5 = _getIterator(item), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
-                        var value = _step5.value;
+                    for (var _iterator10 = _getIterator(item), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+                        var value = _step10.value;
 
                         method.call(context, value, undefined, item);
                     }
                 } catch (err) {
-                    _didIteratorError5 = true;
-                    _iteratorError5 = err;
+                    _didIteratorError10 = true;
+                    _iteratorError10 = err;
                 } finally {
                     try {
-                        if (!_iteratorNormalCompletion5 && _iterator5['return']) {
-                            _iterator5['return']();
+                        if (!_iteratorNormalCompletion10 && _iterator10['return']) {
+                            _iterator10['return']();
                         }
                     } finally {
-                        if (_didIteratorError5) {
-                            throw _iteratorError5;
+                        if (_didIteratorError10) {
+                            throw _iteratorError10;
                         }
                     }
                 }
@@ -665,6 +975,7 @@ function smash(a) {
 exports['default'] = {
     clone: clone,
     deepCopy: clone,
+    each: each,
     equal: equals,
     equals: equals,
     extend: extend,
@@ -673,3 +984,6 @@ exports['default'] = {
     // smash,
     types: types
 };
+// treat keys and values as equivalent for sets
+
+// if unknown type, then check for Symbol.iterator

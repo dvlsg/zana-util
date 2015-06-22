@@ -65,6 +65,16 @@ describe('Util', () => {
             assert.deepEqual(o3.b, c3.b);
             assert.deepEqual(o3.c, c3.c);
             assert.deepEqual(o3, c3);
+
+            let s = Symbol('property');
+            let o4 = {
+                a: 1,
+                [s]: {symbol: 'data'}
+            };
+            let c4 = util.clone(o4);
+            assert.deepEqual(o4[s], c4[s]); // symbol should have been copied
+            assert.notStrictEqual(o4[s], c4[s]); // should have been a deep copy
+            assert.deepEqual(o4, c4);
         });
 
         it('should make clones of buffers', () => {
@@ -185,6 +195,7 @@ describe('Util', () => {
             assert.strictEqual(a1.c, c1.c);
             assert.equal(c1.method(), '1, 2, 3');
 
+            // ensure getters and setters don't get in the way of clone
             class B extends A {
                 get data() {
                     return [this.a, this.b, this.c];
@@ -207,6 +218,36 @@ describe('Util', () => {
             assert.strictEqual(b2.b, c2.b);
             assert.strictEqual(b2.c, c2.c);
             assert.deepEqual(b2.data, c2.data);
+
+            // ensure we can clone symbols on classes
+            let s = Symbol('property');
+            class D extends B {
+                get [s]() {
+                    return 'SymbolData'
+                }
+            };
+            let d3 = new D(1, 2, 3);
+            let c3 = util.clone(d3);
+            assert.deepEqual(d3, c3);
+            assert.strictEqual(d3[s], c3[s]);
+
+            // ensure iterable classes don't get in the way of clone
+            class E {
+                constructor(...args) {
+                    this.arr = args;
+                }
+                *[Symbol.iterator]() {
+                    for (let val of this.arr)
+                        yield val;
+                }
+            };
+            let e1 = new E(1, 2, 3);
+            let e2 = util.clone(e1);
+            assert.deepEqual(e1, e2);
+            assert.deepEqual(e1.arr, e2.arr);
+            e2.arr = [4, 5, 6];
+            assert.deepEqual([...e1], [1, 2, 3]);
+            assert.deepEqual([...e2], [4, 5, 6]);
         });
     });
 
@@ -626,6 +667,7 @@ describe('Util', () => {
             );
             assert.ok(s1.has(o4));
             assert.equal(s1.size, 1);
+
         });
 
     });
@@ -706,6 +748,39 @@ describe('Util', () => {
                 assert.strictEqual(key, undefined);
                 assert.strictEqual(val, v++);
                 assert.strictEqual(ref, iter);
+            });
+        });
+
+        it('should iterate over classes', () => {
+            class A {
+                constructor(a, b, c) {
+                    this.a = a;
+                    this.b = b;
+                    this.c = c;
+                }
+            };
+            let a1 = new A(1, 2, 3);
+            let v = 1;
+            let k = 'a'.charCodeAt(0);
+            util.forEach(a1, (val, key, ref) => {
+                assert.strictEqual(key.charCodeAt(0), k++);
+                assert.strictEqual(val, v++);
+                assert.strictEqual(ref, a1);
+            });
+
+            // note that using Symbol.iterator with forEach
+            // is a way of overriding the default iteration
+            class B extends A {
+                *[Symbol.iterator]() {
+                    yield* this.arr;
+                }
+            };
+            let b1 = new B(1, 2, 3);
+            v = 1;
+            util.forEach(b1, (val, key, ref) => {
+                assert.strictEqual(key, undefined);
+                assert.strictEqual(val, v++);
+                assert.strictEqual(ref, b1);
             });
         });
 

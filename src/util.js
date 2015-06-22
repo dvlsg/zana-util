@@ -74,10 +74,7 @@ function _clone(source, rc) {
     switch (getType(source)) {
         // case types.buffer:
             // return _bufferCopy(source, new Buffer(source.length));
-        case types.object:
-            if (Buffer.isBuffer(source)) // boo, extra checks on each object because of bad buffer toStringTag
-                return _bufferCopy(source, new Buffer(source.length));
-            return _singleCopy(source, Object.create(Object.getPrototypeOf(source)), rc);
+        // case types.object:
         case types.array:
             return _singleCopy(source, [], rc);
         case types.regexp:
@@ -89,8 +86,19 @@ function _clone(source, rc) {
             // return _singleCopy(source, new Set());
         case types.map:
             return _mapCopy(source, new Map(), rc); // might not work / need a _mapCopy?
-        default: // need to handle functions/generators differently? tbd.
+        case types.number:
+        case types.undefined:
+        case types.null:
+        case types.string:
             return source;
+        case types.function:
+            return source; // probably not a great idea. bind somehow?
+        case types.object:
+        default:
+            if (Buffer.isBuffer(source)) // boo, extra checks on each object because of bad buffer toStringTag
+                return _bufferCopy(source, new Buffer(source.length));
+            else
+                return _objectCopy(source, Object.create(Reflect.getPrototypeOf(source)), rc);
     }
 }
 
@@ -104,9 +112,24 @@ function _instanceCopy(sourceRef, copyRef, rc, copier) {
         rc.pop();
         return copyRef;
     }
-    else {
+    else
         return rc.yStack[origIndex];
+}
+
+function _objectCopy(sourceRef, copyRef, rc) {
+    let origIndex = rc.xStack.indexOf(sourceRef);
+    if (origIndex === -1) {
+        rc.push(sourceRef, copyRef);
+        for (let [key, val] of Object.entries(sourceRef))
+            copyRef[key] = _clone(val, rc);
+        let symbols = Object.getOwnPropertySymbols(sourceRef);
+        for (let symbol of symbols)
+            copyRef[symbol] = _clone(sourceRef[symbol], rc);
+        rc.pop();
+        return copyRef;
     }
+    else
+        return rc.yStack[origIndex];
 }
 
 function _setCopy(sourceRef, copyRef, rc) {
@@ -318,6 +341,43 @@ export function equals(item1, item2) {
     return _equals.call(null, item1, item2, rc);
 }
 
+export function* each(item) {
+    let type = getType(item);
+    switch(type) {
+        case types.date:
+        case types.function:
+        case types.object:
+        case types.regexp:
+            if (!item[Symbol.iterator])
+                yield* Object.entries(item);
+            else {
+                for (let value of item)
+                    yield [undefined, value];
+            }
+            break;
+        case types.arguments:
+        case types.array:
+            for (let i = 0; i < item.length; i++)
+                yield [i, item[i]];
+            break;
+        case types.map:
+            yield* item;
+            break;
+        case types.set:
+            for (let value of item) // treat keys and values as equivalent for sets
+                yield [value, value];
+            break;
+        default:
+            // if unknown type, then check for Symbol.iterator
+            if (item[Symbol.iterator]) {
+                for (let value of item)
+                    yield [undefined, value];
+            }
+            break;
+    }
+    return item;
+}
+
 /**
     Generic interface for looping over an iterable item,
     and executing a provided method for each value.
@@ -335,16 +395,12 @@ export function forEach(item, method, context) {
         case types.object:
         case types.regexp:
             if (!item[Symbol.iterator]) {
-                for (let [key, value] of Object.entries(item)) {
+                for (let [key, value] of  Object.entries(item)) {
                     if (item.hasOwnProperty(key))
                         method.call(context, value, key, item);
                 }
             }
-            else {
-                // note: generator is being mistakenly counted as an object
-                // so we need to take care of it here. ideally,
-                // we would be able to use the default for performance reasons,
-                // but that's not working with getType as it is defined
+            else { // shenanigans
                 for (let value of item) {
                     // do we want to check if value is array, and spread it across value/key?
                     method.call(context, value, undefined, item);
@@ -512,6 +568,7 @@ export function smash(a, ...rest) {
 export default {
     clone,
     deepCopy: clone,
+    each,
     equal: equals,
     equals,
     extend,
