@@ -372,6 +372,15 @@ describe('Util', () => {
             assert.ok(util.equals(b1.constructor, b2.constructor));
         });
 
+        it('should pass with equal symbols', () => {
+            let s1 = Symbol();
+            let s2 = s1;
+            assert.ok(util.equals(s1, s2));
+            let s3 = Symbol.for('s');
+            let s4 = Symbol.for('s');
+            assert.ok(util.equals(s3, s4));
+        });
+
         it('should fail with non equal types', () => {
             class A {};
             class B {};
@@ -474,6 +483,20 @@ describe('Util', () => {
             assert.equal(false, util.equals(a1, a2));
             assert.equal(false, util.equals(a1, a3));
             assert.equal(false, util.equals(a2, a3));
+        });
+
+        it('should pass with non equal symbols', () => {
+            let s1 = Symbol();
+            let s2 = Symbol();
+            assert.equal(false, util.equals(s1, s2));
+
+            let s3 = Symbol('s');
+            let s4 = Symbol('s');
+            assert.equal(false, util.equals(s3, s4));
+
+            let s5 = Symbol.for('s');
+            let s6 = Symbol('s');
+            assert.equal(false, util.equals(s5, s6));
         });
     });
 

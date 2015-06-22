@@ -308,6 +308,9 @@ function _equals(x, y, rc) {
         case types.string:
             if (x !== y) return false;
             break;
+        case types.symbol:
+            if (x !== y) return false;
+            break;
         default:
             // safe to assume that if we hit default, we want to compare object (ie - unknown class type?)
             if (!_compareObject(x, y, rc)) return false;
