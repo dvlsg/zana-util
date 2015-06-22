@@ -1,6 +1,6 @@
 {
   "name": "zana-util",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "The utility class for the Zana package",
   "main": "dist/util.js",
   "scripts": {
