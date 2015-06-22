@@ -176,14 +176,37 @@ describe('Util', () => {
                 method() {
                     return `${this.a}, ${this.b}, ${this.c}`;
                 }
-            }
+            };
             let a1 = new A(1, 2, 3);
             let c1 = util.clone(a1);
-            assert.ok(util.equals(a1, c1));
-            assert.ok(util.equals(a1.a, c1.a));
-            assert.ok(util.equals(a1.b, c1.b));
-            assert.ok(util.equals(a1.c, c1.c));
+            assert.deepEqual(a1, c1);
+            assert.strictEqual(a1.a, c1.a);
+            assert.strictEqual(a1.b, c1.b);
+            assert.strictEqual(a1.c, c1.c);
             assert.equal(c1.method(), '1, 2, 3');
+
+            class B extends A {
+                get data() {
+                    return [this.a, this.b, this.c];
+                }
+                set data(arr) {
+                    [this.a, this.b, this.c] = arr;
+                }
+            };
+            let b2 = new B(1, 2, 3);
+            let c2 = util.clone(b2);
+            assert.deepEqual(b2, c2);
+            assert.strictEqual(b2.a, c2.a);
+            assert.strictEqual(b2.b, c2.b);
+            assert.strictEqual(b2.c, c2.c);
+            assert.deepEqual(b2.data, c2.data);
+            b2.data = [4, 5, 6];
+            c2.data = [4, 5, 6];
+            assert.deepEqual(b2, c2);
+            assert.strictEqual(b2.a, c2.a);
+            assert.strictEqual(b2.b, c2.b);
+            assert.strictEqual(b2.c, c2.c);
+            assert.deepEqual(b2.data, c2.data);
         });
     });
 
