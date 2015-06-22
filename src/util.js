@@ -59,6 +59,7 @@ let types = {
     , 'regexp'            : getType(new RegExp())
     , 'string'            : getType('')
     , 'set'               : getType(new Set())
+    , 'symbol'            : getType(Symbol())
     , 'undefined'         : getType(undefined)
     , 'weakmap'           : getType(new WeakMap())
     , 'weakset'           : getType(new WeakSet())
@@ -155,7 +156,7 @@ function _equals(x, y, rc) {
     let yType = getType(y);
     if (xType !== yType)
         return false;
-    // check for circular references
+    // check for circular references -- may get a perf improvement by only using this when necessary, instead of at the top
     let xIndex = rc.xStack.lastIndexOf(x);
     let yIndex = rc.yStack.lastIndexOf(y);
     if (xIndex !== -1) {

@@ -22,6 +22,8 @@ var _Map = require('babel-runtime/core-js/map')['default'];
 
 var _Set = require('babel-runtime/core-js/set')['default'];
 
+var _Symbol = require('babel-runtime/core-js/symbol')['default'];
+
 var _WeakMap = require('babel-runtime/core-js/weak-map')['default'];
 
 var _WeakSet = require('babel-runtime/core-js/weak-set')['default'];
@@ -125,6 +127,7 @@ var types = {
     'regexp': getType(new RegExp()),
     'string': getType(''),
     'set': getType(new _Set()),
+    'symbol': getType(_Symbol()),
     'undefined': getType(undefined),
     'weakmap': getType(new _WeakMap()),
     'weakset': getType(new _WeakSet())
@@ -219,7 +222,7 @@ function _equals(x, y, rc) {
     var xType = getType(x);
     var yType = getType(y);
     if (xType !== yType) return false;
-    // check for circular references
+    // check for circular references -- may get a perf improvement by only using this when necessary, instead of at the top
     var xIndex = rc.xStack.lastIndexOf(x);
     var yIndex = rc.yStack.lastIndexOf(y);
     if (xIndex !== -1) {

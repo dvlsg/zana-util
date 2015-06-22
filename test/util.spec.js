@@ -762,6 +762,12 @@ describe('Util', () => {
             assert.equal(util.getType(new A()), util.getType(new A()));
             assert.notEqual(util.getType(new A()), util.types.object);
         });
+
+        it('should work with symbols', () => {
+            assert.equal(util.getType(Symbol()), util.types.symbol);
+            assert.equal(util.getType(Symbol.prototype), util.types.symbol);
+        });
+
     });
 
 });
