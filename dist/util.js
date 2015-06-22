@@ -160,10 +160,11 @@ function _clone(source, rc) {
         // return _singleCopy(source, new Set());
         case types.map:
             return _mapCopy(source, new _Map(), rc); // might not work / need a _mapCopy?
-        case types.number:
-        case types.undefined:
+        case types.boolean:
         case types['null']:
+        case types.number:
         case types.string:
+        case types.undefined:
             return source;
         case types['function']:
             return source; // probably not a great idea. bind somehow?
@@ -377,9 +378,8 @@ function _equals(x, y, rc) {
             if (!_equals(x.toString(), y.toString(), rc)) return false;
             if (!_compareObject(x, y, rc)) return false;
             break;
+        case types.boolean:
         case types.string:
-            if (x !== y) return false;
-            break;
         case types.symbol:
             if (x !== y) return false;
             break;

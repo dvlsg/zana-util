@@ -7,9 +7,10 @@ describe('Util', () => {
     describe('clone', () => {
 
         it('should make clones of primitives', () => {
-            assert.equal(1, util.clone(1));
             assert.equal(undefined, util.clone(undefined));
             assert.equal(null, util.clone(null));
+            assert.equal(true, util.clone(true));
+            assert.equal(1, util.clone(1));
             assert.equal('string', util.clone('string'));
         });
 
@@ -278,6 +279,11 @@ describe('Util', () => {
             assert.ok(util.equals(null, null));
         });
 
+        it('should pass with equal booleans', () => {
+            assert.ok(util.equals(true, true));
+            assert.ok(util.equals(false, false));
+        });
+
         it('should pass with equal strings', () => {
             assert.ok(util.equals('', ''));
             assert.ok(util.equals(' ', ' '));
@@ -450,6 +456,7 @@ describe('Util', () => {
             class B {};
             assert.equal(false, util.equals(A, B));
             assert.equal(false, util.equals(0, '0'));
+            assert.equal(false, util.equals(0, false));
             assert.equal(false, util.equals(0, null));
             assert.equal(false, util.equals(0, undefined));
             assert.equal(false, util.equals(null, undefined));
@@ -457,6 +464,11 @@ describe('Util', () => {
             assert.equal(false, util.equals(A, ()=>{}));
             assert.equal(false, util.equals('null', null));
             assert.equal(false, util.equals(undefined, 'undefined'));
+        });
+
+        it('should fail with non equal booleans', () => {
+            assert.equal(false, util.equals(true, false));
+            assert.equal(false, util.equals(false, true));
         });
 
         it('should fail with non equal strings', () => {
@@ -820,6 +832,16 @@ describe('Util', () => {
             assert.equal(util.getType(null), util.types.null);
         });
 
+        it('should work with booleans', () => {
+            assert.equal(util.getType(false), util.types.boolean);
+            assert.equal(util.getType(true), util.types.boolean);
+            assert.equal(util.getType(new Boolean()), util.types.boolean);
+            assert.equal(util.getType(new Boolean(1)), util.types.boolean);
+            assert.equal(util.getType(new Boolean('true')), util.types.boolean);
+            assert.equal(util.getType(Boolean()), util.types.boolean);
+            assert.equal(util.getType(Boolean.prototype), util.types.boolean);
+        });
+
         it('should work with numbers', () => {
             assert.equal(util.getType(0), util.types.number);
             assert.equal(util.getType(-0), util.types.number);
@@ -829,7 +851,7 @@ describe('Util', () => {
             assert.equal(util.getType(NaN), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
             assert.equal(util.getType(new Number()), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
             assert.equal(util.getType(new Number(1)), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
-            assert.equal(util.getType(new Number("1")), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
+            assert.equal(util.getType(new Number('1')), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
             assert.equal(util.getType(Number(1)), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
             assert.equal(util.getType(Number.prototype), util.types.number); // hah. this is because toString.call(NaN) returns [object Number]
         });
