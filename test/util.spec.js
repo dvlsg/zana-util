@@ -913,4 +913,122 @@ describe('Util', () => {
 
     });
 
+    describe('inspect', () => {
+
+        it('should inspect undefined', () => {
+            assert.equal(util.inspect(undefined), 'undefined');
+        });
+
+        it('should inspect null', () => {
+            assert.equal(util.inspect(null), 'null');
+        });
+
+        it('should inspect booleans', () => {
+            assert.equal(util.inspect(true), 'true');
+            assert.equal(util.inspect(false), 'false');
+        });
+
+        it('should inspect strings', () => {
+            assert.equal(util.inspect(''), `''`);
+            assert.equal(util.inspect('string'), `'string'`);
+        });
+
+        it('should inspect numbers', () => {
+            assert.equal(util.inspect(0), '0');
+            assert.equal(util.inspect(+0), '0');
+            assert.equal(util.inspect(-0), '0');
+            assert.equal(util.inspect(NaN), 'NaN');
+            assert.equal(util.inspect(Infinity), 'Infinity');
+            assert.equal(util.inspect(-Infinity), '-Infinity');
+        });
+
+        it('should inspect functions', () => {
+            function fn1() {};
+            assert.equal(util.inspect(function fn1() {}), '[Function: fn1]');
+            let fn2 = () => {};
+            assert.equal(util.inspect(fn2), '[Function: fn2]');
+            assert.equal(util.inspect(function() {}), '[Function]');
+            assert.equal(util.inspect(() => {}), '[Function]');
+        });
+
+        it('should inspect arrays', () => {
+            assert.equal(util.inspect([]), '[]');
+            assert.equal(util.inspect([1]), '[ 1 ]');
+            assert.equal(util.inspect([1, 2]), '[ 1, 2 ]');
+            assert.equal(util.inspect(['']), `[ '' ]`);
+            assert.equal(util.inspect(['string']), `[ 'string' ]`);
+            assert.equal(util.inspect(['str1', 'str2']), `[ 'str1', 'str2' ]`);
+            assert.equal(util.inspect(['array', 'with', 'a', 'really', 'long', 'total', 'length', 'which', 'is', 'over', '60', 'characters']), `[ 'array',\n  'with',\n  'a',\n  'really',\n  'long',\n  'total',\n  'length',\n  'which',\n  'is',\n  'over',\n  '60',\n  'characters' ]`);
+            assert.equal(util.inspect([ 1, 2, 3, [ 4, 5, 6, [ 7, 8, 9 ] ] ]), '[ 1, 2, 3, [ 4, 5, 6, [ 7, 8, 9 ] ] ]');
+            let arr1 = [
+                [ 1, 2, 3 ],
+                [ 4, 5, 6 ],
+                7,
+                8,
+                9,
+                [ 10, 11, [ 12, 13, 14 ], [ 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 ] ],
+                15,
+                16,
+                17,
+                [ 18, 19, 20 ]
+            ];
+            assert.equal(util.inspect(arr1), `[ [ 1, 2, 3 ],\n  [ 4, 5, 6 ],\n  7,\n  8,\n  9,\n  [ 10,\n    11,\n    [ 12, 13, 14 ],\n    [ 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 ] ],\n  15,\n  16,\n  17,\n  [ 18, 19, 20 ] ]`);
+            let cir1 = [1, 2, 3];
+            let cir2 = [4, 5, 6];
+            cir1.push(cir2);
+            cir2.push(cir1);
+            assert.equal(util.inspect(cir1), `[ 1, 2, 3, [ 4, 5, 6, [Circular] ] ]`);
+        });
+
+        it('should inspect objects', () => {
+            assert.equal(util.inspect({}), '{}');
+            assert.equal(util.inspect({a: 1}), '{ a: 1 }');
+            assert.equal(util.inspect({a: 1, b: 2, c: 3}), '{ a: 1, b: 2, c: 3 }');
+            assert.equal(util.inspect({a: 'str1', b: 'str2', c: 'str3'}), `{ a: 'str1', b: 'str2', c: 'str3' }`);
+            let obj1 = {
+                a: 1,
+                b: [1, 2, 3],
+                c: {
+                    d: 1,
+                    e: [1, 2, 3, 4, 5, 6, 7],
+                    f: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                },
+                g: {
+                    h: {
+                        i: {
+                            j: {
+                                k: 1290875129875921875,
+                                l: 456987292906876071,
+                                m: 98729835798127198
+                            }
+                        }
+                    }
+                }
+            };
+            assert.equal(util.inspect(obj1), `{\n  a: 1,\n  b: [ 1, 2, 3 ],\n  c: {\n    d: 1,\n    e: [ 1, 2, 3, 4, 5, 6, 7 ],\n    f: [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ] },\n  g: {\n    h: {\n      i: {\n        j: {\n          k: 1290875129875922000,\n          l: 456987292906876100,\n          m: 98729835798127200 } } } } }`);
+            let cir1 = {a: 1};
+            let cir2 = {b: 2};
+            cir1.c = cir2;
+            cir2.c = cir1;
+            assert.equal(util.inspect(cir1), `{ a: 1, c: { b: 2, c: [Circular] } }`);
+        });
+
+        it('should inspect sets', () => {
+            assert.equal(util.inspect(new Set()), '[]');
+            assert.equal(util.inspect(new Set([1, 2, 3])), '[ 1, 2, 3 ]');
+        });
+
+        it('should inspect maps', () => {
+            assert.equal(util.inspect(new Map()), '[]');
+            assert.equal(util.inspect(new Map([['a', 1]])), `[ [ 'a', 1 ] ]`);
+            assert.equal(util.inspect(new Map([['a', 1], ['b', 2]])), `[ [ 'a', 1 ], [ 'b', 2 ] ]`);
+        });
+
+        it('should inspect errors', () => {
+            assert.equal(util.inspect(new Error()), '[Error]');
+            assert.equal(util.inspect(new Error('message')), '[Error: message]');
+        });
+
+    });
+
 });

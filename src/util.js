@@ -49,6 +49,7 @@ let types = {
     , 'boolean'           : getType(true)
     // buffer doesn't work, toString.call(Buffer) returns [object Object]
     , 'date'              : getType(new Date())
+    , 'error'             : getType(new Error())
     , 'generator'         : getType(generatorProto)
     , 'generatorFunction' : getType(generatorFnProto)
     , 'function'          : getType(function(){})
@@ -83,9 +84,8 @@ function _clone(source, rc) {
             return _singleCopy(source, new Date(source), rc);
         case types.set:
             return _setCopy(source, new Set(), rc);
-            // return _singleCopy(source, new Set());
         case types.map:
-            return _mapCopy(source, new Map(), rc); // might not work / need a _mapCopy?
+            return _mapCopy(source, new Map(), rc);
         case types.boolean:
         case types.null:
         case types.number:
@@ -93,7 +93,7 @@ function _clone(source, rc) {
         case types.undefined:
             return source;
         case types.function:
-            return source; // probably not a great idea. bind somehow?
+            return source;
         case types.object:
         default:
             if (Buffer.isBuffer(source)) // boo, extra checks on each object because of bad buffer toStringTag
@@ -335,11 +335,25 @@ function _compareObject(x: any, y: any, rc: RecursiveCounter) {
     return true;
 }
 
-export function equals(item1, item2) {
+/**
+    Compares the equality of two items.
+
+    @param x The first item to compare.
+    @param y The second item to compare.
+    @returns {boolean} An indication as to whether or not x and y were equal.
+*/
+export function equals(x, y) {
     let rc = new RecursiveCounter(1000);
-    return _equals.call(null, item1, item2, rc);
+    return _equals.call(null, x, y, rc);
 }
 
+/**
+    Generic interface for looping over an iterable,
+    yielding a key value pair for each item.
+
+    @param {any} item The item over which to iterate.
+    @returns {any} A reference to the original item.
+*/
 export function* each(item) {
     let type = getType(item);
     switch(type) {
@@ -378,8 +392,8 @@ export function* each(item) {
 }
 
 /**
-    Generic interface for looping over an iterable item,
-    and executing a provided method for each value.
+    Generic interface for looping over an iterable,
+    and executing a provided method for each item.
 
     @param {any} item The item over which to iterate.
     @param {Function} method The callback to execute for each iterated value.
@@ -428,6 +442,87 @@ export function forEach(item, method, context) {
             break;
     }
     return item;
+}
+
+/*
+    Internal method for inspecting a value
+    and providing a string representation of that value.
+
+    (params TBD)
+*/
+function _inspect(inspecting, inspection = '', seen = [], times = 0, indent = 2) {
+    let type = getType(inspecting);
+    switch(type) {
+        case types.undefined:
+            return 'undefined';
+        case types.null:
+            return 'null';
+        case types.function:
+            let name = inspecting.name ? ': ' + inspecting.name : '';
+            return `[Function${name}]`;
+        case types.string:
+            return `'${inspecting}'`;
+        case types.array:
+            if (seen.indexOf(inspecting) > -1)
+                return '[Circular]';
+            times++;
+            inspection = '[ ';
+            seen.push(inspecting);
+            var inspected = [];
+            for (let val of inspecting)
+                inspected.push(_inspect(val, inspection, seen, times));
+            if (inspected.length === 0)
+                return '[]';
+            let length = inspected.reduce((prev, cur) => {
+                return prev + cur.length;
+            }, 0);
+            if (length > 60)
+                inspection = '[ ' + inspected.join(',\n' + ' '.repeat(times * indent)) + ' ]';
+            else
+                inspection = '[ ' + inspected.join(', ') + ' ]';
+            return inspection;
+        case types.object:
+            if (seen.indexOf(inspecting) > -1)
+                return '[Circular]';
+            times++;
+            inspection = '{ ';
+            seen.push(inspecting);
+            let objInspected = [];
+            if (inspecting instanceof Error) // to match nodejs inspect methods
+                objInspected.push('[' + inspecting.toString() + ']');
+            for (let [key, val] of each(inspecting))
+                objInspected.push(key + ': ' + _inspect(val, inspection, seen, times));
+            if (objInspected.length === 0)
+                return '{}';
+            let objLength = objInspected.reduce((prev, cur) => {
+                return prev + cur.length;
+            }, 0);
+            if (objLength > 60)
+                inspection = '{\n' + ' '.repeat(times * indent) + objInspected.join(',\n' + ' '.repeat(times * indent)) + ' }';
+            else
+                inspection = '{ ' + objInspected.join(', ') + ' }';
+            return inspection;
+        case types.map:
+        case types.set:
+            return _inspect([...inspecting]);
+        case types.number:
+        case types.boolean:
+        default:
+            if (inspecting instanceof Error)
+                return '[' + inspecting.toString() + ']';
+            return inspecting.toString();
+    }
+}
+
+/*
+    Method for inspecting a value
+    and providing a string
+    representation that value.
+
+    (params TBD)
+*/
+export function inspect(val, indent = 2) : String {
+    return _inspect(val, '', [], 0, indent);
 }
 
 /**
@@ -573,6 +668,7 @@ export default {
     extend,
     forEach,
     getType,
+    inspect,
     // smash,
     types
 };

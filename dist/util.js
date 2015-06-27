@@ -10,13 +10,11 @@ var _createClass = require('babel-runtime/helpers/create-class')['default'];
 
 var _classCallCheck = require('babel-runtime/helpers/class-call-check')['default'];
 
-var _toConsumableArray = require('babel-runtime/helpers/to-consumable-array')['default'];
-
 var _slicedToArray = require('babel-runtime/helpers/sliced-to-array')['default'];
 
-var _regeneratorRuntime = require('babel-runtime/regenerator')['default'];
+var _toConsumableArray = require('babel-runtime/helpers/to-consumable-array')['default'];
 
-var _Object$defineProperty = require('babel-runtime/core-js/object/define-property')['default'];
+var _regeneratorRuntime = require('babel-runtime/regenerator')['default'];
 
 var _Map = require('babel-runtime/core-js/map')['default'];
 
@@ -42,16 +40,16 @@ var _Object$keys = require('babel-runtime/core-js/object/keys')['default'];
 
 var _Symbol$iterator = require('babel-runtime/core-js/symbol/iterator')['default'];
 
-_Object$defineProperty(exports, '__esModule', {
+Object.defineProperty(exports, '__esModule', {
     value: true
 });
-
 exports.getType = getType;
 exports.setType = setType;
 exports.clone = clone;
 exports.equals = equals;
 exports.each = each;
 exports.forEach = forEach;
+exports.inspect = inspect;
 exports.extend = extend;
 exports.smash = smash;
 var marked0$0 = [each].map(_regeneratorRuntime.mark);
@@ -123,6 +121,7 @@ var types = {
     'boolean': getType(true)
     // buffer doesn't work, toString.call(Buffer) returns [object Object]
     , 'date': getType(new Date()),
+    'error': getType(new Error()),
     'generator': getType(generatorProto),
     'generatorFunction': getType(generatorFnProto),
     'function': getType(function () {}),
@@ -157,9 +156,8 @@ function _clone(source, rc) {
             return _singleCopy(source, new Date(source), rc);
         case types.set:
             return _setCopy(source, new _Set(), rc);
-        // return _singleCopy(source, new Set());
         case types.map:
-            return _mapCopy(source, new _Map(), rc); // might not work / need a _mapCopy?
+            return _mapCopy(source, new _Map(), rc);
         case types.boolean:
         case types['null']:
         case types.number:
@@ -167,7 +165,7 @@ function _clone(source, rc) {
         case types.undefined:
             return source;
         case types['function']:
-            return source; // probably not a great idea. bind somehow?
+            return source;
         case types.object:
         default:
             if (Buffer.isBuffer(source)) // boo, extra checks on each object because of bad buffer toStringTag
@@ -426,10 +424,26 @@ function _compareObject(x, y, rc) {
     return true;
 }
 
-function equals(item1, item2) {
+/**
+    Compares the equality of two items.
+
+    @param x The first item to compare.
+    @param y The second item to compare.
+    @returns {boolean} An indication as to whether or not x and y were equal.
+*/
+
+function equals(x, y) {
     var rc = new RecursiveCounter(1000);
-    return _equals.call(null, item1, item2, rc);
+    return _equals.call(null, x, y, rc);
 }
+
+/**
+    Generic interface for looping over an iterable,
+    yielding a key value pair for each item.
+
+    @param {any} item The item over which to iterate.
+    @returns {any} A reference to the original item.
+*/
 
 function each(item) {
     var type, _iteratorNormalCompletion3, _didIteratorError3, _iteratorError3, _iterator3, _step3, value, i, _iteratorNormalCompletion4, _didIteratorError4, _iteratorError4, _iterator4, _step4, _iteratorNormalCompletion5, _didIteratorError5, _iteratorError5, _iterator5, _step5;
@@ -673,8 +687,8 @@ function each(item) {
 }
 
 /**
-    Generic interface for looping over an iterable item,
-    and executing a provided method for each value.
+    Generic interface for looping over an iterable,
+    and executing a provided method for each item.
 
     @param {any} item The item over which to iterate.
     @param {Function} method The callback to execute for each iterated value.
@@ -841,6 +855,144 @@ function forEach(item, method, context) {
     return item;
 }
 
+/*
+    Internal method for inspecting a value
+    and providing a string representation of that value.
+
+    (params TBD)
+*/
+function _inspect(_x6) {
+    var _arguments = arguments;
+    var _again = true;
+
+    _function: while (_again) {
+        var inspecting = _x6;
+        inspection = seen = times = indent = type = name = inspected = _iteratorNormalCompletion11 = _didIteratorError11 = _iteratorError11 = length = objInspected = _iteratorNormalCompletion12 = _didIteratorError12 = _iteratorError12 = objLength = undefined;
+        var inspection = _arguments[1] === undefined ? '' : _arguments[1];
+        var seen = _arguments[2] === undefined ? [] : _arguments[2];
+        var times = _arguments[3] === undefined ? 0 : _arguments[3];
+        _again = false;
+        var indent = _arguments[4] === undefined ? 2 : _arguments[4];
+
+        var type = getType(inspecting);
+        switch (type) {
+            case types.undefined:
+                return 'undefined';
+            case types['null']:
+                return 'null';
+            case types['function']:
+                var name = inspecting.name ? ': ' + inspecting.name : '';
+                return '[Function' + name + ']';
+            case types.string:
+                return '\'' + inspecting + '\'';
+            case types.array:
+                if (seen.indexOf(inspecting) > -1) return '[Circular]';
+                times++;
+                inspection = '[ ';
+                seen.push(inspecting);
+                var inspected = [];
+                var _iteratorNormalCompletion11 = true;
+                var _didIteratorError11 = false;
+                var _iteratorError11 = undefined;
+
+                try {
+                    for (var _iterator11 = _getIterator(inspecting), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+                        var val = _step11.value;
+
+                        inspected.push(_inspect(val, inspection, seen, times));
+                    }
+                } catch (err) {
+                    _didIteratorError11 = true;
+                    _iteratorError11 = err;
+                } finally {
+                    try {
+                        if (!_iteratorNormalCompletion11 && _iterator11['return']) {
+                            _iterator11['return']();
+                        }
+                    } finally {
+                        if (_didIteratorError11) {
+                            throw _iteratorError11;
+                        }
+                    }
+                }
+
+                if (inspected.length === 0) return '[]';
+                var length = inspected.reduce(function (prev, cur) {
+                    return prev + cur.length;
+                }, 0);
+                if (length > 60) inspection = '[ ' + inspected.join(',\n' + ' '.repeat(times * indent)) + ' ]';else inspection = '[ ' + inspected.join(', ') + ' ]';
+                return inspection;
+            case types.object:
+                if (seen.indexOf(inspecting) > -1) return '[Circular]';
+                times++;
+                inspection = '{ ';
+                seen.push(inspecting);
+                var objInspected = [];
+                if (inspecting instanceof Error) // to match nodejs inspect methods
+                    objInspected.push('[' + inspecting.toString() + ']');
+                var _iteratorNormalCompletion12 = true;
+                var _didIteratorError12 = false;
+                var _iteratorError12 = undefined;
+
+                try {
+                    for (var _iterator12 = _getIterator(each(inspecting)), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+                        var _step12$value = _slicedToArray(_step12.value, 2);
+
+                        var key = _step12$value[0];
+                        var val = _step12$value[1];
+
+                        objInspected.push(key + ': ' + _inspect(val, inspection, seen, times));
+                    }
+                } catch (err) {
+                    _didIteratorError12 = true;
+                    _iteratorError12 = err;
+                } finally {
+                    try {
+                        if (!_iteratorNormalCompletion12 && _iterator12['return']) {
+                            _iterator12['return']();
+                        }
+                    } finally {
+                        if (_didIteratorError12) {
+                            throw _iteratorError12;
+                        }
+                    }
+                }
+
+                if (objInspected.length === 0) return '{}';
+                var objLength = objInspected.reduce(function (prev, cur) {
+                    return prev + cur.length;
+                }, 0);
+                if (objLength > 60) inspection = '{\n' + ' '.repeat(times * indent) + objInspected.join(',\n' + ' '.repeat(times * indent)) + ' }';else inspection = '{ ' + objInspected.join(', ') + ' }';
+                return inspection;
+            case types.map:
+            case types.set:
+                _arguments = [_x6 = [].concat(_toConsumableArray(inspecting))];
+                _again = true;
+                continue _function;
+
+            case types.number:
+            case types.boolean:
+            default:
+                if (inspecting instanceof Error) return '[' + inspecting.toString() + ']';
+                return inspecting.toString();
+        }
+    }
+}
+
+/*
+    Method for inspecting a value
+    and providing a string
+    representation that value.
+
+    (params TBD)
+*/
+
+function inspect(val) {
+    var indent = arguments[1] === undefined ? 2 : arguments[1];
+
+    return _inspect(val, '', [], 0, indent);
+}
+
 /**
     Internal method determining whether or not the provided arguments
     can be smashed or extended together, based on types.
@@ -981,6 +1133,7 @@ exports['default'] = {
     extend: extend,
     forEach: forEach,
     getType: getType,
+    inspect: inspect,
     // smash,
     types: types
 };
