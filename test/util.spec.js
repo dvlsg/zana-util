@@ -561,7 +561,7 @@ describe('Util', () => {
             assert.equal(false, util.equals(a2, a3));
         });
 
-        it('should pass with non equal symbols', () => {
+        it('should fail with non equal symbols', () => {
             let s1 = Symbol();
             let s2 = Symbol();
             assert.equal(false, util.equals(s1, s2));
