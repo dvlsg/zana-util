@@ -10,11 +10,13 @@ var _createClass = require('babel-runtime/helpers/create-class')['default'];
 
 var _classCallCheck = require('babel-runtime/helpers/class-call-check')['default'];
 
-var _slicedToArray = require('babel-runtime/helpers/sliced-to-array')['default'];
-
 var _toConsumableArray = require('babel-runtime/helpers/to-consumable-array')['default'];
 
+var _slicedToArray = require('babel-runtime/helpers/sliced-to-array')['default'];
+
 var _regeneratorRuntime = require('babel-runtime/regenerator')['default'];
+
+var _Object$defineProperty = require('babel-runtime/core-js/object/define-property')['default'];
 
 var _Map = require('babel-runtime/core-js/map')['default'];
 
@@ -40,9 +42,10 @@ var _Object$keys = require('babel-runtime/core-js/object/keys')['default'];
 
 var _Symbol$iterator = require('babel-runtime/core-js/symbol/iterator')['default'];
 
-Object.defineProperty(exports, '__esModule', {
+_Object$defineProperty(exports, '__esModule', {
     value: true
 });
+
 exports.getType = getType;
 exports.setType = setType;
 exports.clone = clone;
@@ -1037,8 +1040,6 @@ function isSmashable() {
 */
 function _extend(a, b) {
     forEach(b, function (bVal, key) {
-        // will most likely need to be altered to accomodate maps and sets
-        // let type = isSmashable(a[key], b[key]);
         var type = getType(a);
         switch (type) {
             case types.array:
@@ -1135,6 +1136,8 @@ exports['default'] = {
     getType: getType,
     inspect: inspect,
     // smash,
+    type: getType,
+    typeOf: getType,
     types: types
 };
 // treat keys and values as equivalent for sets

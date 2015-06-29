@@ -574,8 +574,6 @@ function isSmashable(...args) {
 */
 function _extend(a, b) {
     forEach(b, (bVal, key) => {
-        // will most likely need to be altered to accomodate maps and sets
-        // let type = isSmashable(a[key], b[key]);
         let type = getType(a);
         switch(type) {
             case types.array:
@@ -670,5 +668,7 @@ export default {
     getType,
     inspect,
     // smash,
+    type: getType,
+    typeOf: getType,
     types
 };

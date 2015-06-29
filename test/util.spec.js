@@ -609,7 +609,7 @@ describe('Util', () => {
                 [
                     {a: 1},
                     {b: 2},
-                    {c: 3}
+                    {c: 3, e: [5]}
                 ],
                 [
                     {a: 4},
@@ -617,7 +617,7 @@ describe('Util', () => {
                     {e: [1, 2, 3]}
                 ]
             );
-            assert.deepEqual(a2, [{ a: 1 }, { b: 2, d: 5 }, { c: 3, e: [1, 2, 3]}]);
+            assert.deepEqual(a2, [{ a: 1 }, { b: 2, d: 5 }, { c: 3, e: [5, 2, 3]}]);
         });
 
         it('should extend sets', () => {
