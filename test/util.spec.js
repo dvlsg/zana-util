@@ -4,7 +4,7 @@ let log = console.log.bind(console);
 
 describe('Util', () => {
 
-    describe('clone', () => {
+    describe('clone()', () => {
 
         it('should make clones of primitives', () => {
             assert.equal(undefined, util.clone(undefined));
@@ -252,7 +252,7 @@ describe('Util', () => {
         });
     });
 
-    describe('deepCopy', () => {
+    describe('deepCopy()', () => {
 
         it('should be a reference to clone()', () => {
             assert.strictEqual(util.deepCopy, util.clone);
@@ -260,7 +260,7 @@ describe('Util', () => {
 
     });
 
-    describe('equal', () => {
+    describe('equal()', () => {
 
         it('should be a reference to equals()', () => {
             assert.strictEqual(util.equal, util.equals);
@@ -268,7 +268,7 @@ describe('Util', () => {
 
     });
 
-    describe('equals', () => {
+    describe('equals()', () => {
 
         it('should pass with both undefined', () => {
             assert.ok(util.equals(undefined, undefined));
@@ -576,7 +576,7 @@ describe('Util', () => {
         });
     });
 
-    describe('extend', () => {
+    describe('extend()', () => {
 
         it('should return a reference to the first argument', () => {
             let o1 = {};
@@ -684,7 +684,7 @@ describe('Util', () => {
 
     });
 
-    describe('forEach', () => {
+    describe('forEach()', () => {
 
         it('should iterate over arrays', () => {
             let arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -821,7 +821,7 @@ describe('Util', () => {
 
     });
 
-    describe('getType', () => {
+    describe('getType()', () => {
 
         it('should work with undefined', () => {
             assert.equal(util.getType(undefined), util.types.undefined);
@@ -913,7 +913,7 @@ describe('Util', () => {
 
     });
 
-    describe('inspect', () => {
+    describe('inspect()', () => {
 
         it('should inspect undefined', () => {
             assert.equal(util.inspect(undefined), 'undefined');
@@ -1027,6 +1027,94 @@ describe('Util', () => {
         it('should inspect errors', () => {
             assert.equal(util.inspect(new Error()), '[Error]');
             assert.equal(util.inspect(new Error('message')), '[Error: message]');
+        });
+
+    });
+
+    describe('type()', () => {
+
+        it('should be an alias for getType', () => {
+            assert.strictEqual(util.type, util.getType);
+        });
+
+    });
+
+    describe('typeOf()', () => {
+
+        it('should be an alias for getType', () => {
+            assert.strictEqual(util.type, util.typeOf);
+        });
+        
+    });
+
+    describe('types', () => {
+
+        it('should have an entry for arguments', () => {
+            assert.equal(util.getType(arguments), util.types.arguments);
+        });
+
+        it('should have an entry for array', () => {
+            assert.equal(util.getType([]), util.types.array);
+        });
+
+        it('should have an entry for boolean', () => {
+            assert.equal(util.getType(true), util.types.boolean);
+        });
+
+        it('should have an entry for date', () => {
+            assert.equal(util.getType(new Date()), util.types.date);
+        });
+
+        it('should have an entry for error', () => {
+            assert.equal(util.getType(new Error()), util.types.error);
+        });
+
+        it('should have an entry for function', () => {
+            assert.equal(util.getType(function(){}), util.types.function);
+        });
+
+        it('should have an entry for map', () => {
+            assert.equal(util.getType(new Map()), util.types.map);
+        });
+
+        it('should have an entry for null', () => {
+            assert.equal(util.getType(null), util.types.null);
+        });
+
+        it('should have an entry for number', () => {
+            assert.equal(util.getType(0), util.types.number);
+        });
+
+        it('should have an entry for object', () => {
+            assert.equal(util.getType({}), util.types.object);
+        });
+
+        it('should have an entry for regexp', () => {
+            assert.equal(util.getType(new RegExp()), util.types.regexp);
+        });
+
+        it('should have an entry for string', () => {
+            assert.equal(util.getType(''), util.types.string);
+        });
+
+        it('should have an entry for set', () => {
+            assert.equal(util.getType(new Set()), util.types.set);
+        });
+
+        it('should have an entry for symbol', () => {
+            assert.equal(util.getType(Symbol()), util.types.symbol);
+        });
+
+        it('should have an entry for undefined', () => {
+            assert.equal(util.getType(undefined), util.types.undefined);
+        });
+
+        it('should have an entry for weakmap', () => {
+            assert.equal(util.getType(new WeakMap()), util.types.weakmap);
+        });
+
+        it('should have an entry for weakset', () => {
+            assert.equal(util.getType(new WeakSet()), util.types.weakset);
         });
 
     });

@@ -43,7 +43,7 @@ export function getType(val) {
 
 let generatorProto   = (function*(){}()).prototype;
 let generatorFnProto = (function*(){}).prototype; // this isn't specific enough at this point. leaving for now, possible rework when ES6 is stable.
-let types = {
+export var types = {
       'arguments'         : getType(arguments) // will this work? babel may be accidentally saving us here. swap to iife if necessary
     , 'array'             : getType([])
     , 'boolean'           : getType(true)

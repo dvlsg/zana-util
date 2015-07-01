@@ -10,13 +10,11 @@ var _createClass = require('babel-runtime/helpers/create-class')['default'];
 
 var _classCallCheck = require('babel-runtime/helpers/class-call-check')['default'];
 
-var _toConsumableArray = require('babel-runtime/helpers/to-consumable-array')['default'];
-
 var _slicedToArray = require('babel-runtime/helpers/sliced-to-array')['default'];
 
-var _regeneratorRuntime = require('babel-runtime/regenerator')['default'];
+var _toConsumableArray = require('babel-runtime/helpers/to-consumable-array')['default'];
 
-var _Object$defineProperty = require('babel-runtime/core-js/object/define-property')['default'];
+var _regeneratorRuntime = require('babel-runtime/regenerator')['default'];
 
 var _Map = require('babel-runtime/core-js/map')['default'];
 
@@ -42,10 +40,9 @@ var _Object$keys = require('babel-runtime/core-js/object/keys')['default'];
 
 var _Symbol$iterator = require('babel-runtime/core-js/symbol/iterator')['default'];
 
-_Object$defineProperty(exports, '__esModule', {
+Object.defineProperty(exports, '__esModule', {
     value: true
 });
-
 exports.getType = getType;
 exports.setType = setType;
 exports.clone = clone;
@@ -140,6 +137,8 @@ var types = {
     'weakmap': getType(new _WeakMap()),
     'weakset': getType(new _WeakSet())
 };
+
+exports.types = types;
 
 function setType(key, value) {
     types[key] = getType(value);
