@@ -1,4 +1,12 @@
-import util from '../dist/util.js';
+import util, {
+      clone
+    , deepCopy
+    , equal
+    , equals
+    , getType
+    , type
+    , typeOf
+} from '../dist/util.js';
 import assert from 'assert';
 let log = console.log.bind(console);
 
@@ -254,16 +262,18 @@ describe('Util', () => {
 
     describe('deepCopy()', () => {
 
-        it('should be a reference to clone()', () => {
+        it('should be an alias for clone()', () => {
             assert.strictEqual(util.deepCopy, util.clone);
+            assert.strictEqual(deepCopy, clone);
         });
 
     });
 
     describe('equal()', () => {
 
-        it('should be a reference to equals()', () => {
+        it('should be an alias for equals()', () => {
             assert.strictEqual(util.equal, util.equals);
+            assert.strictEqual(equal, equals);
         });
 
     });
@@ -1035,6 +1045,7 @@ describe('Util', () => {
 
         it('should be an alias for getType', () => {
             assert.strictEqual(util.type, util.getType);
+            assert.strictEqual(type, getType);
         });
 
     });
@@ -1042,7 +1053,8 @@ describe('Util', () => {
     describe('typeOf()', () => {
 
         it('should be an alias for getType', () => {
-            assert.strictEqual(util.type, util.typeOf);
+            assert.strictEqual(util.typeOf, util.getType);
+            assert.strictEqual(typeOf, getType);
         });
         
     });

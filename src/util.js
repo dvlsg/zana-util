@@ -657,6 +657,11 @@ export function smash(a, ...rest) {
     return a;
 }
 
+export var deepCopy = clone;
+export var equal = equals;
+export var type = getType;
+export var typeOf = getType;
+
 export default {
     clone,
     deepCopy: clone,

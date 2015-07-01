@@ -1124,6 +1124,15 @@ function smash(a) {
     return a;
 }
 
+var deepCopy = clone;
+exports.deepCopy = deepCopy;
+var equal = equals;
+exports.equal = equal;
+var type = getType;
+exports.type = type;
+var typeOf = getType;
+
+exports.typeOf = typeOf;
 exports['default'] = {
     clone: clone,
     deepCopy: clone,
