@@ -1,3 +1,9 @@
+"use strict";
+
+/* eslint no-new-wrappers: 0 */
+/* eslint no-new-object: 0 */
+/* eslint no-array-constructor: 0 */
+
 import util, {
       clone
     , deepCopy
@@ -8,7 +14,6 @@ import util, {
     , typeOf
 } from '../dist/util.js';
 import assert from 'assert';
-let log = console.log.bind(console);
 
 describe('Util', () => {
 
@@ -25,7 +30,7 @@ describe('Util', () => {
         it('should make clones of arrays', () => {
             let a1 = [];
             let c1 = util.clone(a1);
-            assert.notStrictEqual(a1, c2);
+            assert.notStrictEqual(a1, c1);
             assert.deepEqual(a1, c1);
 
             let a2 = [1, 2, 3, 4, 5];
@@ -195,7 +200,7 @@ describe('Util', () => {
                 method() {
                     return `${this.a}, ${this.b}, ${this.c}`;
                 }
-            };
+            }
             let a1 = new A(1, 2, 3);
             let c1 = util.clone(a1);
             assert.deepEqual(a1, c1);
@@ -212,7 +217,7 @@ describe('Util', () => {
                 set data(arr) {
                     [this.a, this.b, this.c] = arr;
                 }
-            };
+            }
             let b2 = new B(1, 2, 3);
             let c2 = util.clone(b2);
             assert.deepEqual(b2, c2);
@@ -232,9 +237,9 @@ describe('Util', () => {
             let s = Symbol('property');
             class D extends B {
                 get [s]() {
-                    return 'SymbolData'
+                    return 'SymbolData';
                 }
-            };
+            }
             let d3 = new D(1, 2, 3);
             let c3 = util.clone(d3);
             assert.deepEqual(d3, c3);
@@ -249,7 +254,7 @@ describe('Util', () => {
                     for (let val of this.arr)
                         yield val;
                 }
-            };
+            }
             let e1 = new E(1, 2, 3);
             let e2 = util.clone(e1);
             assert.deepEqual(e1, e2);
@@ -310,8 +315,8 @@ describe('Util', () => {
 
         it('should pass with both NaN', () => {
             assert.ok(util.equals(NaN, NaN));
-            assert.ok(util.equals(NaN, 0/0));
-            assert.ok(util.equals(NaN, "string"/0));
+            assert.ok(util.equals(NaN, 0 / 0));
+            assert.ok(util.equals(NaN, "string" / 0));
         });
 
         it('should pass with equal Infinity', () => {
@@ -340,7 +345,7 @@ describe('Util', () => {
             assert.ok(util.equals({a: 1}, {a: 1}));
             assert.ok(util.equals({a: 1, b: 2}, {b: 2, a: 1})); // order of keys shouldn't matter
             assert.ok(util.equals({a: 1, data: { arr: [1, 2, 3]}}, {a: 1, data: { arr: [1, 2, 3]}}));
-            
+
             let oa1 = {a: 1};
             let ob1 = {b: 2};
             let oa2 = {a: 1};
@@ -388,7 +393,6 @@ describe('Util', () => {
             let oa = {a: 1};
             let ob = {b: 2};
             let oc = {c: 3};
-            let od = {d: 4};
             let s3 = new Set([oa, ob, oc]);
             let s4 = new Set([util.clone(oa), util.clone(ob), util.clone(oc)]);
             assert.ok(util.equals(s3, s4));
@@ -424,13 +428,13 @@ describe('Util', () => {
                 get [Symbol.toStringTag]() {
                     return 'A';
                 }
-            };
+            }
 
             class B extends A {
                 get [Symbol.toStringTag]() {
                     return 'B';
                 }
-            };
+            }
 
             let a1 = new A(1, 2, 3);
             let a2 = new A(1, 2, 3);
@@ -462,8 +466,8 @@ describe('Util', () => {
         });
 
         it('should fail with non equal types', () => {
-            class A {};
-            class B {};
+            class A {}
+            class B {}
             assert.equal(false, util.equals(A, B));
             assert.equal(false, util.equals(0, '0'));
             assert.equal(false, util.equals(0, false));
@@ -558,7 +562,7 @@ describe('Util', () => {
                     this.b = b;
                     this.c = c;
                 }
-            };
+            }
             let a0 = new A();
             let a1 = new A(1);
             let a2 = new A(1, 2);
@@ -780,7 +784,7 @@ describe('Util', () => {
                     this.b = b;
                     this.c = c;
                 }
-            };
+            }
             let a1 = new A(1, 2, 3);
             let v = 1;
             let k = 'a'.charCodeAt(0);
@@ -796,7 +800,7 @@ describe('Util', () => {
                 *[Symbol.iterator]() {
                     yield* this.arr;
                 }
-            };
+            }
             let b1 = new B(1, 2, 3);
             v = 1;
             util.forEach(b1, (val, key, ref) => {
@@ -818,8 +822,7 @@ describe('Util', () => {
                 get [Symbol.toStringTag]() {
                     return 'A';
                 }
-            };
-
+            }
             let a = new A(1, 2, 3, 4, 5);
             let v = 1;
             util.forEach(a, (val, key, ref) => {
@@ -910,8 +913,8 @@ describe('Util', () => {
 
         it('should work with classes by toStringTag', () => {
             class A {
-                get [Symbol.toStringTag]() { return 'A' };
-            };
+                get [Symbol.toStringTag]() { return 'A'; };
+            }
             assert.equal(util.getType(new A()), util.getType(new A()));
             assert.notEqual(util.getType(new A()), util.types.object);
         });
@@ -953,8 +956,8 @@ describe('Util', () => {
         });
 
         it('should inspect functions', () => {
-            function fn1() {};
-            assert.equal(util.inspect(function fn1() {}), '[Function: fn1]');
+            function fn1() {}
+            assert.equal(util.inspect(fn1), '[Function: fn1]');
             let fn2 = () => {};
             assert.equal(util.inspect(fn2), '[Function: fn2]');
             assert.equal(util.inspect(function() {}), '[Function]');
@@ -1056,7 +1059,7 @@ describe('Util', () => {
             assert.strictEqual(util.typeOf, util.getType);
             assert.strictEqual(typeOf, getType);
         });
-        
+
     });
 
     describe('types', () => {
