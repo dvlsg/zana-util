@@ -18,6 +18,8 @@ var _regeneratorRuntime = require('babel-runtime/regenerator')['default'];
 
 var _Map = require('babel-runtime/core-js/map')['default'];
 
+var _Promise = require('babel-runtime/core-js/promise')['default'];
+
 var _Set = require('babel-runtime/core-js/set')['default'];
 
 var _Symbol = require('babel-runtime/core-js/symbol')['default'];
@@ -129,6 +131,7 @@ var types = {
     'null': getType(null),
     'number': getType(0),
     'object': getType({}),
+    'promise': getType(new _Promise(function () {})),
     'regexp': getType(new RegExp()),
     'string': getType(''),
     'set': getType(new _Set()),
