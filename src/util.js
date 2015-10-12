@@ -138,6 +138,15 @@ function _clone(source, rc) {
     }
 }
 
+/**
+    The shared instance copier based on provided callback.
+
+    @param sourceRef A reference to the source.
+    @param copyRef A reference to the copy.
+    @param rc The current recurse and reference counter.
+    @param copier The callback used to make a copy of the property list from source to copy reference.
+    @returns {any} The reference to the copy.
+*/
 function _instanceCopy(sourceRef, copyRef, rc, copier) {
     let origIndex = rc.xStack.indexOf(sourceRef);
     if (origIndex === -1) {
@@ -152,6 +161,14 @@ function _instanceCopy(sourceRef, copyRef, rc, copier) {
         return rc.yStack[origIndex];
 }
 
+/**
+    Copies data from one object to another.
+
+    @param sourceRef A reference to the object source.
+    @param copyRef A reference to the object copy.
+    @param rc The current recurse and reference counter.
+    @returns {Object} The reference to the object copy.
+*/
 function _objectCopy(sourceRef, copyRef, rc) {
     let origIndex = rc.xStack.indexOf(sourceRef);
     if (origIndex === -1) {
@@ -168,29 +185,67 @@ function _objectCopy(sourceRef, copyRef, rc) {
         return rc.yStack[origIndex];
 }
 
+/**
+    Copies data from one set to another.
+
+    @param sourceRef A reference to the set source.
+    @param copyRef A reference to the set copy.
+    @param rc The current recurse and reference counter.
+    @returns {Set} The reference to the set copy.
+*/
 function _setCopy(sourceRef, copyRef, rc) {
     return _instanceCopy(sourceRef, copyRef, rc, (set, val) => {
         set.add(_clone(val, rc));
     });
 }
 
+/**
+    Copies data from one map to another.
+
+    @param sourceRef A reference to the map source.
+    @param copyRef A reference to the map copy.
+    @param rc The current recurse and reference counter.
+    @returns {Map} The reference to the map copy.
+*/
 function _mapCopy(sourceRef, copyRef, rc) {
     return _instanceCopy(sourceRef, copyRef, rc, (map, val, key) => {
         map.set(key, _clone(val, rc));
     });
 }
 
+/**
+    Copies data from one item to another.
+    Designed to a be a generic copy interface, where possible.
+
+    @param sourceRef A reference to the source.
+    @param copyRef A reference to the copy.
+    @param rc The current recurse and reference counter.
+    @returns {any} The reference to the copy.
+*/
 function _singleCopy(sourceRef, copyRef, rc) {
     return _instanceCopy(sourceRef, copyRef, rc, (item, val, key) => {
         copyRef[key] = _clone(val, rc);
     });
 }
 
-function _bufferCopy(sourceRef, copyRef, rc) {
+/**
+    Copies data from one buffer to another.
+
+    @param sourceRef A reference to the buffer source.
+    @param copyRef A reference to the buffer copy.
+    @returns {Buffer} The reference to the buffer copy.
+*/
+function _bufferCopy(sourceRef, copyRef) {
     sourceRef.copy(copyRef);
     return copyRef;
 }
 
+/**
+    Creates a deep clone of the provided source.
+
+    @param origSource The item to clone.
+    @returns {any} The cloned item.
+*/
 export function clone(origSource) {
     let origIndex = -1;
     let rc = new RecursiveCounter(1000);
