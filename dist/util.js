@@ -4,7 +4,7 @@
     License: MIT
     See license.txt for full license text.
 */
-'use strict';
+"use strict";
 
 var _createClass = require('babel-runtime/helpers/create-class')['default'];
 
@@ -16,13 +16,15 @@ var _toConsumableArray = require('babel-runtime/helpers/to-consumable-array')['d
 
 var _regeneratorRuntime = require('babel-runtime/regenerator')['default'];
 
-var _Map = require('babel-runtime/core-js/map')['default'];
+var _Symbol = require('babel-runtime/core-js/symbol')['default'];
+
+var _Object$defineProperty = require('babel-runtime/core-js/object/define-property')['default'];
 
 var _Promise = require('babel-runtime/core-js/promise')['default'];
 
-var _Set = require('babel-runtime/core-js/set')['default'];
+var _Map = require('babel-runtime/core-js/map')['default'];
 
-var _Symbol = require('babel-runtime/core-js/symbol')['default'];
+var _Set = require('babel-runtime/core-js/set')['default'];
 
 var _WeakMap = require('babel-runtime/core-js/weak-map')['default'];
 
@@ -66,9 +68,9 @@ var log = console.log.bind(console); /* eslint no-unused-vars: 0 */
     @class Contains two reference stacks as well as a defined max stack depth.
 */
 
-var RecursiveCounter = (function () {
-    function RecursiveCounter(maxStackDepth) {
-        _classCallCheck(this, RecursiveCounter);
+var RecurseCounter = (function () {
+    function RecurseCounter(maxStackDepth) {
+        _classCallCheck(this, RecurseCounter);
 
         this.xStack = [];
         this.yStack = [];
@@ -76,7 +78,7 @@ var RecursiveCounter = (function () {
         this.maxStackDepth = maxStackDepth;
     }
 
-    _createClass(RecursiveCounter, [{
+    _createClass(RecurseCounter, [{
         key: 'push',
         value: function push(x, y) {
             this.xStack.push(x);
@@ -92,22 +94,10 @@ var RecursiveCounter = (function () {
         }
     }]);
 
-    return RecursiveCounter;
+    return RecurseCounter;
 })();
 
-function getType(val) {
-    return toString.call(val);
-}
-
-var generatorProto = _regeneratorRuntime.mark(function callee$0$0() {
-    return _regeneratorRuntime.wrap(function callee$0$0$(context$1$0) {
-        while (1) switch (context$1$0.prev = context$1$0.next) {
-            case 0:
-            case 'end':
-                return context$1$0.stop();
-        }
-    }, callee$0$0, this);
-})().prototype;
+var toStringTagTemp = _Symbol('@@toStringTagTemp'); // make sure this is a symbol, so we don't step on anyone else's toes.
 var generatorFnProto = _regeneratorRuntime.mark(function callee$0$0() {
     return _regeneratorRuntime.wrap(function callee$0$0$(context$1$0) {
         while (1) switch (context$1$0.prev = context$1$0.next) {
@@ -116,15 +106,64 @@ var generatorFnProto = _regeneratorRuntime.mark(function callee$0$0() {
                 return context$1$0.stop();
         }
     }, callee$0$0, this);
-}).prototype; // this isn't specific enough at this point. leaving for now, possible rework when ES6 is stable.
+}).prototype;
+
+// NOTE: to fix a bug with how babel-runtime works without polyfilling Object.prototype.toString,
+// we need to make sure that the following polyfilled items will return the expected string
+// with the getType() method.
+//
+// if we don't do this, then toString.call() on these items will most likely return [object Object],
+// which will in turn cause methods like equals() and clone() to handle them incorrectly.
+_Object$defineProperty(_Promise.prototype, toStringTagTemp, {
+    get: function get() {
+        return '[object GeneratorFunction]';
+    },
+    enumerable: false
+});
+_Object$defineProperty(_Map.prototype, toStringTagTemp, {
+    get: function get() {
+        return '[object Map]';
+    },
+    enumerable: false
+});
+_Object$defineProperty(_Set.prototype, toStringTagTemp, {
+    get: function get() {
+        return '[object Set]';
+    },
+    enumerable: false
+});
+_Object$defineProperty(_WeakMap.prototype, toStringTagTemp, {
+    get: function get() {
+        return '[object WeakMap]';
+    },
+    enumerable: false
+});
+_Object$defineProperty(_WeakSet.prototype, toStringTagTemp, {
+    get: function get() {
+        return '[object WeakSet]';
+    },
+    enumerable: false
+});
+_Object$defineProperty(generatorFnProto, toStringTagTemp, { // make sure this doesn't collide with anything else.
+    get: function get() {
+        return '[object GeneratorFunction]';
+    },
+    enumerable: false
+});
+
+function getType(val) {
+    if (val && val[toStringTagTemp]) return val[toStringTagTemp];
+    return toString.call(val);
+}
+
 var types = {
-    'arguments': getType(arguments) // will this work? babel may be accidentally saving us here. swap to iife if necessary
-    , 'array': getType([]),
-    'boolean': getType(true)
+    'arguments': getType(arguments), // will this work? babel may be accidentally saving us here. swap to iife if necessary
+    'array': getType([]),
+    'boolean': getType(true),
     // buffer doesn't work, toString.call(Buffer) returns [object Object]
-    , 'date': getType(new Date()),
+    'date': getType(new Date()),
     'error': getType(new Error()),
-    'generator': getType(generatorProto),
+    // , 'generator'         : getType(generatorProto)
     'generatorFunction': getType(generatorFnProto),
     'function': getType(function () {}),
     'map': getType(new _Map()),
@@ -148,11 +187,8 @@ function setType(key, value) {
 }
 
 function _clone(source, rc) {
-    if (rc.count > rc.maxStackDepth) throw new Error('Stack depth exceeded: ' + rc.stackMaxDepth + '!');
+    if (rc.count > rc.maxStackDepth) throw new Error("Stack depth exceeded: " + rc.stackMaxDepth + "!");
     switch (getType(source)) {
-        // case types.buffer:
-        // return _bufferCopy(source, new Buffer(source.length));
-        // case types.object:
         case types.array:
             return _singleCopy(source, [], rc);
         case types.regexp:
@@ -178,6 +214,15 @@ function _clone(source, rc) {
     }
 }
 
+/**
+    The shared instance copier based on provided callback.
+
+    @param sourceRef A reference to the source.
+    @param copyRef A reference to the copy.
+    @param rc The current recurse and reference counter.
+    @param copier The callback used to make a copy of the property list from source to copy reference.
+    @returns {any} The reference to the copy.
+*/
 function _instanceCopy(sourceRef, copyRef, rc, copier) {
     var origIndex = rc.xStack.indexOf(sourceRef);
     if (origIndex === -1) {
@@ -190,6 +235,14 @@ function _instanceCopy(sourceRef, copyRef, rc, copier) {
     } else return rc.yStack[origIndex];
 }
 
+/**
+    Copies data from one object to another.
+
+    @param sourceRef A reference to the object source.
+    @param copyRef A reference to the object copy.
+    @param rc The current recurse and reference counter.
+    @returns {Object} The reference to the object copy.
+*/
 function _objectCopy(sourceRef, copyRef, rc) {
     var origIndex = rc.xStack.indexOf(sourceRef);
     if (origIndex === -1) {
@@ -253,32 +306,71 @@ function _objectCopy(sourceRef, copyRef, rc) {
     } else return rc.yStack[origIndex];
 }
 
+/**
+    Copies data from one set to another.
+
+    @param sourceRef A reference to the set source.
+    @param copyRef A reference to the set copy.
+    @param rc The current recurse and reference counter.
+    @returns {Set} The reference to the set copy.
+*/
 function _setCopy(sourceRef, copyRef, rc) {
     return _instanceCopy(sourceRef, copyRef, rc, function (set, val) {
         set.add(_clone(val, rc));
     });
 }
 
+/**
+    Copies data from one map to another.
+
+    @param sourceRef A reference to the map source.
+    @param copyRef A reference to the map copy.
+    @param rc The current recurse and reference counter.
+    @returns {Map} The reference to the map copy.
+*/
 function _mapCopy(sourceRef, copyRef, rc) {
     return _instanceCopy(sourceRef, copyRef, rc, function (map, val, key) {
         map.set(key, _clone(val, rc));
     });
 }
 
+/**
+    Copies data from one item to another.
+    Designed to a be a generic copy interface, where possible.
+
+    @param sourceRef A reference to the source.
+    @param copyRef A reference to the copy.
+    @param rc The current recurse and reference counter.
+    @returns {any} The reference to the copy.
+*/
 function _singleCopy(sourceRef, copyRef, rc) {
     return _instanceCopy(sourceRef, copyRef, rc, function (item, val, key) {
         copyRef[key] = _clone(val, rc);
     });
 }
 
-function _bufferCopy(sourceRef, copyRef, rc) {
+/**
+    Copies data from one buffer to another.
+
+    @param sourceRef A reference to the buffer source.
+    @param copyRef A reference to the buffer copy.
+    @returns {Buffer} The reference to the buffer copy.
+*/
+function _bufferCopy(sourceRef, copyRef) {
     sourceRef.copy(copyRef);
     return copyRef;
 }
 
+/**
+    Creates a deep clone of the provided source.
+
+    @param origSource The item to clone.
+    @returns {any} The cloned item.
+*/
+
 function clone(origSource) {
     var origIndex = -1;
-    var rc = new RecursiveCounter(1000);
+    var rc = new RecurseCounter(1000);
     return _clone.call(null, origSource, rc);
 }
 
@@ -291,14 +383,14 @@ function clone(origSource) {
     @returns {boolean} An indication as to whether or not x and y were equal.
 */
 function _equals(x, y, rc) {
-    if (rc.count > rc.maxStackDepth) throw new Error('Stack depth exceeded: ' + rc.maxStackDepth + '!');
+    if (rc.count > rc.maxStackDepth) throw new Error("Stack depth exceeded: " + rc.maxStackDepth + "!");
     // check for reference and primitive equality
     if (x === y) return true;
     // check for type equality
     var xType = getType(x);
     var yType = getType(y);
     if (xType !== yType) return false;
-    // check for circular references -- may get a perf improvement by only using this when necessary, instead of at the top
+    // check for circular references
     var xIndex = rc.xStack.lastIndexOf(x);
     var yIndex = rc.yStack.lastIndexOf(y);
     if (xIndex !== -1) {
@@ -343,26 +435,6 @@ function _equals(x, y, rc) {
             var yArr = [].concat(_toConsumableArray(y)); // converting to array may still be the fastest option.
             if (!_equals(xArr, yArr, rc)) return false;
             break;
-        // case types.generator:
-        // // case this.types.generatorFunction:
-        //     // do we really want to check generator equality other than reference equality?
-        //     // this could accidentally execute some lazy-loading stuff.
-
-        //     // leaning towards no. considering.
-        //     rc.push(x, y);
-        //     let a, b;
-        //     let tempX = x[Symbol.iterator](); // these point to the same object, after the Symbol.iterator get override
-        //     let tempY = y[Symbol.iterator]();
-        //     do {
-        //         a = tempX.next();
-        //         b = tempY.next();
-        //         if (!_equals(a.value, b.value, rc))
-        //             return false;
-        //     } while (!(a.done || b.done));
-        //     if (a.done !== b.done)
-        //         return false;
-        //     rc.pop();
-        //     break;
         case types['function']:
             if (!_compareObject(x, y, rc)) // check for properties on function
                 return false;
@@ -389,17 +461,6 @@ function _equals(x, y, rc) {
         default:
             // safe to assume that if we hit default, we want to compare object (ie - unknown class type?)
             if (!_compareObject(x, y, rc)) return false;
-            // // how do we compare classes with an overridden toStringTag?
-            // // this isn't very helpful... constructor is always a function, even for primitives.
-            // if (x.constructor instanceof Function) { // dangerous? more testing, especially on equals that need to fail.
-            //     if (!_compareObject(x, y, rc))
-            //         return false;
-            // }
-            // else {
-            //     log('in here');
-            //     if (x !== y)
-            //         return false;
-            // }
             break;
     }
     return true;
@@ -438,7 +499,7 @@ function _compareObject(x, y, rc) {
 */
 
 function equals(x, y) {
-    var rc = new RecursiveCounter(1000);
+    var rc = new RecurseCounter(1000);
     return _equals.call(null, x, y, rc);
 }
 
@@ -873,11 +934,11 @@ function _inspect(_x6) {
     _function: while (_again) {
         var inspecting = _x6;
         inspection = seen = times = indent = type = name = inspected = _iteratorNormalCompletion11 = _didIteratorError11 = _iteratorError11 = length = objInspected = _iteratorNormalCompletion12 = _didIteratorError12 = _iteratorError12 = objLength = undefined;
-        var inspection = _arguments[1] === undefined ? '' : _arguments[1];
-        var seen = _arguments[2] === undefined ? [] : _arguments[2];
-        var times = _arguments[3] === undefined ? 0 : _arguments[3];
+        var inspection = _arguments.length <= 1 || _arguments[1] === undefined ? '' : _arguments[1];
+        var seen = _arguments.length <= 2 || _arguments[2] === undefined ? [] : _arguments[2];
+        var times = _arguments.length <= 3 || _arguments[3] === undefined ? 0 : _arguments[3];
         _again = false;
-        var indent = _arguments[4] === undefined ? 2 : _arguments[4];
+        var indent = _arguments.length <= 4 || _arguments[4] === undefined ? 2 : _arguments[4];
 
         var type = getType(inspecting);
         switch (type) {
@@ -993,7 +1054,7 @@ function _inspect(_x6) {
 */
 
 function inspect(val) {
-    var indent = arguments[1] === undefined ? 2 : arguments[1];
+    var indent = arguments.length <= 1 || arguments[1] === undefined ? 2 : arguments[1];
 
     return _inspect(val, '', [], 0, indent);
 }
