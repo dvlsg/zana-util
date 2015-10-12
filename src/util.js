@@ -108,9 +108,6 @@ export function setType(key, value) {
 function _clone(source, rc) {
     if (rc.count > rc.maxStackDepth) throw new Error("Stack depth exceeded: " + rc.stackMaxDepth + "!");
     switch (getType(source)) {
-        // case types.buffer:
-            // return _bufferCopy(source, new Buffer(source.length));
-        // case types.object:
         case types.array:
             return _singleCopy(source, [], rc);
         case types.regexp:
@@ -248,7 +245,7 @@ function _bufferCopy(sourceRef, copyRef) {
 */
 export function clone(origSource) {
     let origIndex = -1;
-    let rc = new RecursiveCounter(1000);
+    let rc = new RecurseCounter(1000);
     return _clone.call(null, origSource, rc);
 }
 
@@ -270,7 +267,7 @@ function _equals(x, y, rc) {
     let yType = getType(y);
     if (xType !== yType)
         return false;
-    // check for circular references -- may get a perf improvement by only using this when necessary, instead of at the top
+    // check for circular references
     let xIndex = rc.xStack.lastIndexOf(x);
     let yIndex = rc.yStack.lastIndexOf(y);
     if (xIndex !== -1) {
@@ -325,26 +322,6 @@ function _equals(x, y, rc) {
             if (!_equals(xArr, yArr, rc))
                 return false;
             break;
-        // case types.generator:
-        // // case this.types.generatorFunction:
-        //     // do we really want to check generator equality other than reference equality?
-        //     // this could accidentally execute some lazy-loading stuff.
-
-        //     // leaning towards no. considering.
-        //     rc.push(x, y);
-        //     let a, b;
-        //     let tempX = x[Symbol.iterator](); // these point to the same object, after the Symbol.iterator get override
-        //     let tempY = y[Symbol.iterator]();
-        //     do {
-        //         a = tempX.next();
-        //         b = tempY.next();
-        //         if (!_equals(a.value, b.value, rc))
-        //             return false;
-        //     } while (!(a.done || b.done));
-        //     if (a.done !== b.done)
-        //         return false;
-        //     rc.pop();
-        //     break;
         case types.function:
             if (!_compareObject(x, y, rc)) // check for properties on function
                 return false;
@@ -381,17 +358,6 @@ function _equals(x, y, rc) {
             // safe to assume that if we hit default, we want to compare object (ie - unknown class type?)
             if (!_compareObject(x, y, rc))
                 return false;
-            // // how do we compare classes with an overridden toStringTag?
-            // // this isn't very helpful... constructor is always a function, even for primitives.
-            // if (x.constructor instanceof Function) { // dangerous? more testing, especially on equals that need to fail.
-            //     if (!_compareObject(x, y, rc))
-            //         return false;
-            // }
-            // else {
-            //     log('in here');
-            //     if (x !== y)
-            //         return false;
-            // }
             break;
     }
     return true;
@@ -405,7 +371,7 @@ function _equals(x, y, rc) {
     @param rc The running counter for comparing circular references.
     @returns {boolean} An indication as to whether or not x and y were equal.
 */
-function _compareObject(x: any, y: any, rc: RecursiveCounter) {
+function _compareObject(x: any, y: any, rc: RecurseCounter) {
     if (x === y)
         return true;
     if (x.constructor && y.constructor && x.constructor !== y.constructor)
