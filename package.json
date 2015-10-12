@@ -36,6 +36,6 @@
     "run-sequence": "^1.1.2"
   },
   "dependencies": {
-    "babel-runtime": "^5.5.8"
+    "babel-runtime": "^5.8.25"
   }
 }
