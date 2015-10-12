@@ -16,7 +16,7 @@ let log = console.log.bind(console); /* eslint no-unused-vars: 0 */
 
     @class Contains two reference stacks as well as a defined max stack depth.
 */
-class RecursiveCounter {
+class RecurseCounter {
     constructor(maxStackDepth) {
         this.xStack = [];
         this.yStack = [];
@@ -378,7 +378,7 @@ function _compareObject(x: any, y: any, rc: RecursiveCounter) {
     @returns {boolean} An indication as to whether or not x and y were equal.
 */
 export function equals(x, y) {
-    let rc = new RecursiveCounter(1000);
+    let rc = new RecurseCounter(1000);
     return _equals.call(null, x, y, rc);
 }
 
