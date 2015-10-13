@@ -117,12 +117,12 @@ As well as `Objects`, `extend` will also work with other iterable items such as 
 let arr1 = [1, 2, 3];
 let arr2 = [4, 5, 6, 7];
 extend(arr1, arr2);
-console.log(...arr1); //=> [ 1, 2, 3, 4 ]
+console.log(...arr1); //=> [ 1, 2, 3, 7 ]
 
 let set1 = new Set([1, 2, 3]);
 let set2 = new Set([4]);
 extend(set1, set2);
-console.log(...set1); //=> 1 2 3 7
+console.log(...set1); //=> 1 2 3 4
 
 let map1 = new Map([['a', 1], ['b', 2]]);
 let map2 = new Map([['c', 3]]);
