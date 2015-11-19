@@ -175,6 +175,9 @@ describe('Util', () => {
             oa.b = ob;
             ob.a = oa;
             let ca = util.clone(oa);
+            ca.name = 'ca';
+            assert.strictEqual(oa.name, 'oa');
+            assert.strictEqual(ca.name, 'ca');
             assert.strictEqual(oa, oa.b.a);
             assert.strictEqual(ca, ca.b.a);
             assert.notStrictEqual(ca, oa);
@@ -184,6 +187,9 @@ describe('Util', () => {
             let oc = {name: 'oc'};
             oc.c = oc;
             let cc = util.clone(oc);
+            cc.name = 'cc';
+            assert.strictEqual(oc.name, 'oc');
+            assert.strictEqual(cc.name, 'cc');
             assert.strictEqual(oc, oc.c);
             assert.strictEqual(cc, cc.c);
             assert.notStrictEqual(oc, cc.c); // again, circular reference to clone, not the original
@@ -197,20 +203,27 @@ describe('Util', () => {
                     this.b = b;
                     this.c = c;
                 }
+                get [Symbol.toStringTag]() {
+                    return 'A';
+                }
                 method() {
                     return `${this.a}, ${this.b}, ${this.c}`;
                 }
             }
             let a1 = new A(1, 2, 3);
-            let c1 = util.clone(a1);
-            assert.deepEqual(a1, c1);
-            assert.strictEqual(a1.a, c1.a);
-            assert.strictEqual(a1.b, c1.b);
-            assert.strictEqual(a1.c, c1.c);
-            assert.equal(c1.method(), '1, 2, 3');
+            let a2 = util.clone(a1);
+            assert.ok(a2 instanceof A);
+            assert.deepEqual(a1, a2);
+            assert.strictEqual(a1.a, a2.a);
+            assert.strictEqual(a1.b, a2.b);
+            assert.strictEqual(a1.c, a2.c);
+            assert.equal(a2.method(), '1, 2, 3');
 
             // ensure getters and setters don't get in the way of clone
             class B extends A {
+                get [Symbol.toStringTag]() {
+                    return 'B';
+                }
                 get data() {
                     return [this.a, this.b, this.c];
                 }
@@ -218,50 +231,62 @@ describe('Util', () => {
                     [this.a, this.b, this.c] = arr;
                 }
             }
-            let b2 = new B(1, 2, 3);
-            let c2 = util.clone(b2);
-            assert.deepEqual(b2, c2);
-            assert.strictEqual(b2.a, c2.a);
-            assert.strictEqual(b2.b, c2.b);
-            assert.strictEqual(b2.c, c2.c);
-            assert.deepEqual(b2.data, c2.data);
+            let b1 = new B(1, 2, 3);
+            let b2 = util.clone(b1);
+            assert.ok(b2 instanceof B);
+            assert.ok(b2 instanceof A); // since B extends A
+            assert.deepEqual(b1, b2);
+            assert.strictEqual(b1.a, b2.a);
+            assert.strictEqual(b1.b, b2.b);
+            assert.strictEqual(b1.c, b2.c);
+            assert.deepEqual(b1.data, b2.data);
+            b1.data = [4, 5, 6];
             b2.data = [4, 5, 6];
-            c2.data = [4, 5, 6];
-            assert.deepEqual(b2, c2);
-            assert.strictEqual(b2.a, c2.a);
-            assert.strictEqual(b2.b, c2.b);
-            assert.strictEqual(b2.c, c2.c);
-            assert.deepEqual(b2.data, c2.data);
+            assert.deepEqual(b1, b2);
+            assert.strictEqual(b1.a, b2.a);
+            assert.strictEqual(b1.b, b2.b);
+            assert.strictEqual(b1.c, b2.c);
+            assert.deepEqual(b1.data, b2.data);
 
             // ensure we can clone symbols on classes
             let s = Symbol('property');
-            class D extends B {
+            class C extends B {
+                get [Symbol.toStringTag]() {
+                    return 'C';
+                }
                 get [s]() {
                     return 'SymbolData';
                 }
             }
-            let d3 = new D(1, 2, 3);
-            let c3 = util.clone(d3);
-            assert.deepEqual(d3, c3);
-            assert.strictEqual(d3[s], c3[s]);
+            let c1 = new C(1, 2, 3);
+            let c2 = util.clone(c1);
+            assert.ok(c2 instanceof C);
+            assert.ok(c2 instanceof B);
+            assert.ok(c2 instanceof A);
+            assert.deepEqual(c1, c2);
+            assert.strictEqual(c1[s], c2[s]);
 
             // ensure iterable classes don't get in the way of clone
-            class E {
+            class D {
                 constructor(...args) {
                     this.arr = args;
+                }
+                get [Symbol.toStringTag]() {
+                    return 'D';
                 }
                 *[Symbol.iterator]() {
                     for (let val of this.arr)
                         yield val;
                 }
             }
-            let e1 = new E(1, 2, 3);
-            let e2 = util.clone(e1);
-            assert.deepEqual(e1, e2);
-            assert.deepEqual(e1.arr, e2.arr);
-            e2.arr = [4, 5, 6];
-            assert.deepEqual([...e1], [1, 2, 3]);
-            assert.deepEqual([...e2], [4, 5, 6]);
+            let d1 = new D(1, 2, 3);
+            let d2 = util.clone(d1);
+            assert.ok(d2 instanceof D);
+            assert.deepEqual(d1, d2);
+            assert.deepEqual(d1.arr, d2.arr);
+            d2.arr = [4, 5, 6];
+            assert.deepEqual([...d1], [1, 2, 3]);
+            assert.deepEqual([...d2], [4, 5, 6]);
         });
     });
 
@@ -672,6 +697,22 @@ describe('Util', () => {
             assert.deepEqual([...m2], [['a', {a: 1, b: 2}]]);
         });
 
+        it('should treat classes as objects', () => {
+            class C {
+                constructor(a) {
+                    this.a = a;
+                }
+                get [Symbol.toStringTag]() {
+                    return 'C';
+                }
+            }
+            let c1 = new C('stuff');
+            c1.b = 'things';
+            let c2 = util.extend(new C(), c1);
+            assert.equal(c2.a, 'stuff');
+            assert.equal(c2.b, 'things');
+        });
+
         it('should make shallow references', () => {
             let o1 = {a: 1};
             let o2 = {b: 2};
@@ -784,6 +825,9 @@ describe('Util', () => {
                     this.b = b;
                     this.c = c;
                 }
+                get [Symbol.toStringTag]() {
+                    return 'A';
+                }
             }
             let a1 = new A(1, 2, 3);
             let v = 1;
@@ -799,6 +843,9 @@ describe('Util', () => {
             class B extends A {
                 *[Symbol.iterator]() {
                     yield* this.arr;
+                }
+                get [Symbol.toStringTag]() {
+                    return 'B';
                 }
             }
             let b1 = new B(1, 2, 3);
