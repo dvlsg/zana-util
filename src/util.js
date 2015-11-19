@@ -18,7 +18,7 @@ let log = console.log.bind(console); /* eslint no-unused-vars: 0 */
 */
 class RecurseCounter {
     constructor(maxStackDepth) {
-        this.xStack = [];
+        this.xStack = []; // consider a weakmap instead of an array
         this.yStack = [];
         this.count = 0;
         this.maxStackDepth = maxStackDepth;
@@ -100,6 +100,7 @@ export var types = {
     , 'weakmap'           : getType(new WeakMap())
     , 'weakset'           : getType(new WeakSet())
 };
+const typeset = new Set(Object.values(types));
 
 export function setType(key, value) {
     types[key] = getType(value);
@@ -464,7 +465,7 @@ export function forEach(item, method, context) {
         case types.object:
         case types.regexp:
             if (!item[Symbol.iterator]) {
-                for (let [key, value] of  Object.entries(item)) {
+                for (let [key, value] of Object.entries(item)) {
                     if (item.hasOwnProperty(key))
                         method.call(context, value, key, item);
                 }
@@ -494,6 +495,12 @@ export function forEach(item, method, context) {
             if (item[Symbol.iterator]) {
                 for (let value of item)
                     method.call(context, value, undefined, item);
+            }
+            else if (!typeset.has(type) && type && type.constructor) {
+                for (let [ key, value ] of Object.entries(item)) {
+                    if (item.hasOwnProperty(key)) // necessary with Object.entries?
+                        method.call(context, value, key, item);
+                }
             }
             break;
     }
@@ -582,6 +589,26 @@ export function inspect(val, indent = 2) : String {
 }
 
 /**
+    Internal method determining which type
+    to utilize for a provided value when using extend.
+
+    This is to be used so types for classes
+    and functions can be considered as objects.
+
+    @param val The first item to compare.
+    @param y The second item to compare.
+    @param rc The running counter for comparing circular references.
+    @returns {boolean} An indication as to whether or not x and y were equal.
+*/
+function typeForExtend(val) {
+    // treat unknown types (classes, hopefully?) and functions as objects
+    let type = getType(val);
+    if (type === types.function || !typeset.has(type) && type && type.constructor)
+        type = types.object;
+    return type;
+}
+
+/**
     Internal method determining whether or not the provided arguments
     can be smashed or extended together, based on types.
 
@@ -590,12 +617,12 @@ export function inspect(val, indent = 2) : String {
     @param rc The running counter for comparing circular references.
     @returns {boolean} An indication as to whether or not x and y were equal.
 */
-function isSmashable(...args) {
+function isExtendable(...args) {
     // this is a fairly expensive call. find a way to optimize further?
     if (args.length < 1)
         return false;
 
-    let baseType = getType(args[0]);
+    let baseType = typeForExtend(args[0]);
     if (!(
                baseType === types.array
             || baseType === types.object
@@ -604,19 +631,12 @@ function isSmashable(...args) {
             || baseType === types.function)) {
         return false;
     }
-
-    if (baseType === types.function)
-        baseType = types.object; // allow functions to be smashed onto objects, and vice versa
-
     for (let i = 1; i < args.length; i++) {
-        let targetType = getType(args[i]);
-        if (targetType === types.function)
-            targetType = types.object; // allow functions to be smashed onto objects, and vice versa
-
+        let targetType = typeForExtend(args[i]);
         if (targetType !== baseType)
             return false;
     }
-    return baseType;
+    return true;
 }
 
 /**
@@ -630,13 +650,13 @@ function isSmashable(...args) {
 */
 function _extend(a, b) {
     forEach(b, (bVal, key) => {
-        let type = getType(a);
+        let type = typeForExtend(a);
         switch(type) {
             case types.array:
             case types.object:
                 if (a[key] === undefined || a[key] === null)
                     a[key] = b[key];
-                else if (isSmashable(a[key], b[key]))
+                else if (isExtendable(a[key], b[key]))
                     _extend(a[key], b[key]);
                 break;
             case types.set:
@@ -650,7 +670,7 @@ function _extend(a, b) {
                     let aVal = a.get(key);
                     if (aVal === undefined || aVal === null)
                         a.set(key, bVal);
-                    else if (isSmashable(aVal, bVal))
+                    else if (isExtendable(aVal, bVal))
                         _extend(aVal, bVal);
                 }
                 break;
@@ -671,7 +691,7 @@ function _extend(a, b) {
 */
 export function extend(a, ...rest) {
     rest.forEach(b => {
-        if (isSmashable(a, b))
+        if (isExtendable(a, b))
             _extend(a, b);
     });
     return a;

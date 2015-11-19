@@ -30,6 +30,8 @@ var _WeakMap = require('babel-runtime/core-js/weak-map')['default'];
 
 var _WeakSet = require('babel-runtime/core-js/weak-set')['default'];
 
+var _Object$values = require('babel-runtime/core-js/object/values')['default'];
+
 var _Object$create = require('babel-runtime/core-js/object/create')['default'];
 
 var _Reflect$getPrototypeOf = require('babel-runtime/core-js/reflect/get-prototype-of')['default'];
@@ -72,7 +74,7 @@ var RecurseCounter = (function () {
     function RecurseCounter(maxStackDepth) {
         _classCallCheck(this, RecurseCounter);
 
-        this.xStack = [];
+        this.xStack = []; // consider a weakmap instead of an array
         this.yStack = [];
         this.count = 0;
         this.maxStackDepth = maxStackDepth;
@@ -179,8 +181,8 @@ var types = {
     'weakmap': getType(new _WeakMap()),
     'weakset': getType(new _WeakSet())
 };
-
 exports.types = types;
+var typeset = new _Set(_Object$values(types));
 
 function setType(key, value) {
     types[key] = getType(value);
@@ -915,6 +917,35 @@ function forEach(item, method, context) {
                         }
                     }
                 }
+            } else if (!typeset.has(type) && type && type.constructor) {
+                var _iteratorNormalCompletion11 = true;
+                var _didIteratorError11 = false;
+                var _iteratorError11 = undefined;
+
+                try {
+                    for (var _iterator11 = _getIterator(_Object$entries(item)), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
+                        var _step11$value = _slicedToArray(_step11.value, 2);
+
+                        var key = _step11$value[0];
+                        var value = _step11$value[1];
+
+                        if (item.hasOwnProperty(key)) // necessary with Object.entries?
+                            method.call(context, value, key, item);
+                    }
+                } catch (err) {
+                    _didIteratorError11 = true;
+                    _iteratorError11 = err;
+                } finally {
+                    try {
+                        if (!_iteratorNormalCompletion11 && _iterator11['return']) {
+                            _iterator11['return']();
+                        }
+                    } finally {
+                        if (_didIteratorError11) {
+                            throw _iteratorError11;
+                        }
+                    }
+                }
             }
             break;
     }
@@ -933,7 +964,7 @@ function _inspect(_x6) {
 
     _function: while (_again) {
         var inspecting = _x6;
-        inspection = seen = times = indent = type = name = inspected = _iteratorNormalCompletion11 = _didIteratorError11 = _iteratorError11 = length = objInspected = _iteratorNormalCompletion12 = _didIteratorError12 = _iteratorError12 = objLength = undefined;
+        inspection = seen = times = indent = type = name = inspected = _iteratorNormalCompletion12 = _didIteratorError12 = _iteratorError12 = length = objInspected = _iteratorNormalCompletion13 = _didIteratorError13 = _iteratorError13 = objLength = undefined;
         var inspection = _arguments.length <= 1 || _arguments[1] === undefined ? '' : _arguments[1];
         var seen = _arguments.length <= 2 || _arguments[2] === undefined ? [] : _arguments[2];
         var times = _arguments.length <= 3 || _arguments[3] === undefined ? 0 : _arguments[3];
@@ -957,27 +988,27 @@ function _inspect(_x6) {
                 inspection = '[ ';
                 seen.push(inspecting);
                 var inspected = [];
-                var _iteratorNormalCompletion11 = true;
-                var _didIteratorError11 = false;
-                var _iteratorError11 = undefined;
+                var _iteratorNormalCompletion12 = true;
+                var _didIteratorError12 = false;
+                var _iteratorError12 = undefined;
 
                 try {
-                    for (var _iterator11 = _getIterator(inspecting), _step11; !(_iteratorNormalCompletion11 = (_step11 = _iterator11.next()).done); _iteratorNormalCompletion11 = true) {
-                        var val = _step11.value;
+                    for (var _iterator12 = _getIterator(inspecting), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
+                        var val = _step12.value;
 
                         inspected.push(_inspect(val, inspection, seen, times));
                     }
                 } catch (err) {
-                    _didIteratorError11 = true;
-                    _iteratorError11 = err;
+                    _didIteratorError12 = true;
+                    _iteratorError12 = err;
                 } finally {
                     try {
-                        if (!_iteratorNormalCompletion11 && _iterator11['return']) {
-                            _iterator11['return']();
+                        if (!_iteratorNormalCompletion12 && _iterator12['return']) {
+                            _iterator12['return']();
                         }
                     } finally {
-                        if (_didIteratorError11) {
-                            throw _iteratorError11;
+                        if (_didIteratorError12) {
+                            throw _iteratorError12;
                         }
                     }
                 }
@@ -996,30 +1027,30 @@ function _inspect(_x6) {
                 var objInspected = [];
                 if (inspecting instanceof Error) // to match nodejs inspect methods
                     objInspected.push('[' + inspecting.toString() + ']');
-                var _iteratorNormalCompletion12 = true;
-                var _didIteratorError12 = false;
-                var _iteratorError12 = undefined;
+                var _iteratorNormalCompletion13 = true;
+                var _didIteratorError13 = false;
+                var _iteratorError13 = undefined;
 
                 try {
-                    for (var _iterator12 = _getIterator(each(inspecting)), _step12; !(_iteratorNormalCompletion12 = (_step12 = _iterator12.next()).done); _iteratorNormalCompletion12 = true) {
-                        var _step12$value = _slicedToArray(_step12.value, 2);
+                    for (var _iterator13 = _getIterator(each(inspecting)), _step13; !(_iteratorNormalCompletion13 = (_step13 = _iterator13.next()).done); _iteratorNormalCompletion13 = true) {
+                        var _step13$value = _slicedToArray(_step13.value, 2);
 
-                        var key = _step12$value[0];
-                        var val = _step12$value[1];
+                        var key = _step13$value[0];
+                        var val = _step13$value[1];
 
                         objInspected.push(key + ': ' + _inspect(val, inspection, seen, times));
                     }
                 } catch (err) {
-                    _didIteratorError12 = true;
-                    _iteratorError12 = err;
+                    _didIteratorError13 = true;
+                    _iteratorError13 = err;
                 } finally {
                     try {
-                        if (!_iteratorNormalCompletion12 && _iterator12['return']) {
-                            _iterator12['return']();
+                        if (!_iteratorNormalCompletion13 && _iterator13['return']) {
+                            _iterator13['return']();
                         }
                     } finally {
-                        if (_didIteratorError12) {
-                            throw _iteratorError12;
+                        if (_didIteratorError13) {
+                            throw _iteratorError13;
                         }
                     }
                 }
@@ -1060,6 +1091,25 @@ function inspect(val) {
 }
 
 /**
+    Internal method determining which type
+    to utilize for a provided value when using extend.
+
+    This is to be used so types for classes
+    and functions can be considered as objects.
+
+    @param val The first item to compare.
+    @param y The second item to compare.
+    @param rc The running counter for comparing circular references.
+    @returns {boolean} An indication as to whether or not x and y were equal.
+*/
+function typeForExtend(val) {
+    // treat unknown types (classes, hopefully?) and functions as objects
+    var type = getType(val);
+    if (type === types['function'] || !typeset.has(type) && type && type.constructor) type = types.object;
+    return type;
+}
+
+/**
     Internal method determining whether or not the provided arguments
     can be smashed or extended together, based on types.
 
@@ -1068,7 +1118,7 @@ function inspect(val) {
     @param rc The running counter for comparing circular references.
     @returns {boolean} An indication as to whether or not x and y were equal.
 */
-function isSmashable() {
+function isExtendable() {
     for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
         args[_key] = arguments[_key];
     }
@@ -1076,20 +1126,15 @@ function isSmashable() {
     // this is a fairly expensive call. find a way to optimize further?
     if (args.length < 1) return false;
 
-    var baseType = getType(args[0]);
+    var baseType = typeForExtend(args[0]);
     if (!(baseType === types.array || baseType === types.object || baseType === types.set || baseType === types.map || baseType === types['function'])) {
         return false;
     }
-
-    if (baseType === types['function']) baseType = types.object; // allow functions to be smashed onto objects, and vice versa
-
     for (var i = 1; i < args.length; i++) {
-        var targetType = getType(args[i]);
-        if (targetType === types['function']) targetType = types.object; // allow functions to be smashed onto objects, and vice versa
-
+        var targetType = typeForExtend(args[i]);
         if (targetType !== baseType) return false;
     }
-    return baseType;
+    return true;
 }
 
 /**
@@ -1103,11 +1148,11 @@ function isSmashable() {
 */
 function _extend(a, b) {
     forEach(b, function (bVal, key) {
-        var type = getType(a);
+        var type = typeForExtend(a);
         switch (type) {
             case types.array:
             case types.object:
-                if (a[key] === undefined || a[key] === null) a[key] = b[key];else if (isSmashable(a[key], b[key])) _extend(a[key], b[key]);
+                if (a[key] === undefined || a[key] === null) a[key] = b[key];else if (isExtendable(a[key], b[key])) _extend(a[key], b[key]);
                 break;
             case types.set:
                 if (!a.has(bVal)) a.add(bVal);
@@ -1115,7 +1160,7 @@ function _extend(a, b) {
             case types.map:
                 if (!a.has(key)) a.set(key, bVal);else {
                     var aVal = a.get(key);
-                    if (aVal === undefined || aVal === null) a.set(key, bVal);else if (isSmashable(aVal, bVal)) _extend(aVal, bVal);
+                    if (aVal === undefined || aVal === null) a.set(key, bVal);else if (isExtendable(aVal, bVal)) _extend(aVal, bVal);
                 }
                 break;
         }
@@ -1140,7 +1185,7 @@ function extend(a) {
     }
 
     rest.forEach(function (b) {
-        if (isSmashable(a, b)) _extend(a, b);
+        if (isExtendable(a, b)) _extend(a, b);
     });
     return a;
 }
