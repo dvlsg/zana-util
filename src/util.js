@@ -37,11 +37,11 @@ class RecurseCounter {
     }
 }
 
-export function getType(val) {
+function getType(val) {
     return toString.call(val);
 }
 
-export const types = (function() { // use iife for safe arguments wrapper
+const types = (function() { // use iife for safe arguments wrapper
     return {
           'arguments' : getType(arguments)
         , 'array'     : getType([])
@@ -50,6 +50,7 @@ export const types = (function() { // use iife for safe arguments wrapper
         , 'date'      : getType(new Date())
         , 'error'     : getType(new Error())
         , 'function'  : getType(() => {})
+        , 'generator' : getType(function*(){})
         , 'map'       : getType(new Map())
         , 'null'      : getType(null)
         , 'number'    : getType(0)
@@ -64,14 +65,23 @@ export const types = (function() { // use iife for safe arguments wrapper
         , 'weakset'   : getType(new WeakSet())
     };
 })();
-const typeset = new Set(Object.values(types));
 
-export function setType(key, value) {
+const values = (obj) => {
+    let result = [];
+    return Object.keys(obj).reduce((arr, key) => {
+        arr.push(obj[key]);
+        return arr;
+    }, []);
+};
+const typeset = new Set(values(types));
+
+function setType(key, value) {
     types[key] = getType(value);
 }
 
 function _clone(source, rc) {
-    if (rc.count > rc.maxStackDepth) throw new Error("Stack depth exceeded: " + rc.stackMaxDepth + "!");
+    if (rc.count > rc.maxStackDepth)
+        throw new Error("Stack depth exceeded: " + rc.stackMaxDepth + "!");
     switch (getType(source)) {
         case types.array:
             return _singleCopy(source, [], rc);
@@ -135,7 +145,7 @@ function _objectCopy(sourceRef, copyRef, rc) {
     let origIndex = rc.xStack.indexOf(sourceRef);
     if (origIndex === -1) {
         rc.push(sourceRef, copyRef);
-        for (let [key, val] of Object.entries(sourceRef))
+        for (let [key, val] of _entries(sourceRef))
             copyRef[key] = _clone(val, rc);
         let symbols = Object.getOwnPropertySymbols(sourceRef);
         for (let symbol of symbols)
@@ -208,11 +218,12 @@ function _bufferCopy(sourceRef, copyRef) {
     @param origSource The item to clone.
     @returns {any} The cloned item.
 */
-export function clone(origSource) {
+function clone(origSource) {
     let origIndex = -1;
     let rc = new RecurseCounter(1000);
     return _clone.call(null, origSource, rc);
 }
+
 
 /**
     Internal method for comparing the equivalence of items.
@@ -223,7 +234,8 @@ export function clone(origSource) {
     @returns {boolean} An indication as to whether or not x and y were equal.
 */
 function _equals(x, y, rc) {
-    if (rc.count > rc.maxStackDepth) throw new Error("Stack depth exceeded: " + rc.maxStackDepth + "!");
+    if (rc.count > rc.maxStackDepth)
+        throw new Error("Stack depth exceeded: " + rc.maxStackDepth + "!");
     // check for reference and primitive equality
     if (x === y)
         return true;
@@ -335,7 +347,7 @@ function _equals(x, y, rc) {
     @param rc The running counter for comparing circular references.
     @returns {boolean} An indication as to whether or not x and y were equal.
 */
-function _compareObject(x: any, y: any, rc: RecurseCounter) {
+function _compareObject(x, y, rc) {
     if (x === y)
         return true;
     if (x.constructor && y.constructor && x.constructor !== y.constructor)
@@ -362,9 +374,16 @@ function _compareObject(x: any, y: any, rc: RecurseCounter) {
     @param y The second item to compare.
     @returns {boolean} An indication as to whether or not x and y were equal.
 */
-export function equals(x, y) {
+function equals(x, y) {
     let rc = new RecurseCounter(1000);
     return _equals.call(null, x, y, rc);
+}
+
+function _entries(obj) {
+    return Object.keys(obj).reduce((entries, key) => {
+        entries.push([ key, obj[key] ]);
+        return entries;
+    }, []);
 }
 
 /**
@@ -374,7 +393,7 @@ export function equals(x, y) {
     @param {any} item The item over which to iterate.
     @returns {any} A reference to the original item.
 */
-export function* each(item) {
+function* each(item) {
     let type = getType(item);
     switch(type) {
         case types.date:
@@ -382,7 +401,7 @@ export function* each(item) {
         case types.object:
         case types.regexp:
             if (!item[Symbol.iterator])
-                yield* Object.entries(item);
+                yield* _entries(item);
             else {
                 for (let value of item)
                     yield [undefined, value];
@@ -420,7 +439,7 @@ export function* each(item) {
     @param {any} context The optional context to pass to each callback.
     @returns {any} A reference to the original item.
 */
-export function forEach(item, method, context) {
+function forEach(item, method, context) {
     let type = getType(item);
     switch(type) {
         case types.date:
@@ -428,7 +447,7 @@ export function forEach(item, method, context) {
         case types.object:
         case types.regexp:
             if (!item[Symbol.iterator]) {
-                for (let [key, value] of Object.entries(item)) {
+                for (let [key, value] of _entries(item)) {
                     if (item.hasOwnProperty(key))
                         method.call(context, value, key, item);
                 }
@@ -460,8 +479,8 @@ export function forEach(item, method, context) {
                     method.call(context, value, undefined, item);
             }
             else if (!typeset.has(type) && type && type.constructor) {
-                for (let [ key, value ] of Object.entries(item)) {
-                    if (item.hasOwnProperty(key)) // necessary with Object.entries?
+                for (let [ key, value ] of _entries(item)) {
+                    if (item.hasOwnProperty(key)) // necessary with _entries?
                         method.call(context, value, key, item);
                 }
             }
@@ -547,7 +566,7 @@ function _inspect(inspecting, inspection = '', seen = [], times = 0, indent = 2)
 
     (params TBD)
 */
-export function inspect(val, indent = 2) : String {
+function inspect(val, indent = 2) {
     return _inspect(val, '', [], 0, indent);
 }
 
@@ -652,7 +671,7 @@ function _extend(a, b) {
     @param {...any} rest The tail items to extend onto the target.
     @returns {any} A reference to the extended target.
 */
-export function extend(a, ...rest) {
+function extend(a, ...rest) {
     rest.forEach(b => {
         if (isExtendable(a, b))
             _extend(a, b);
@@ -688,7 +707,7 @@ function _smash(a, b) {
     @param {...any} rest The tail items to smash onto the target.
     @returns {any} A reference to the smashed target.
 */
-export function smash(a, ...rest) {
+function smash(a, ...rest) {
     rest.forEach(b => {
         if (this.isSmashable(a, b)) // find a way to move isSmashable internal
             this._smash(a, b);
@@ -696,22 +715,17 @@ export function smash(a, ...rest) {
     return a;
 }
 
-export var deepCopy = clone;
-export var equal = equals;
-export var type = getType;
-export var typeOf = getType;
-
-export default {
+module.exports = {
     clone,
     deepCopy: clone,
-    each,
     equal: equals,
     equals,
     extend,
     forEach,
     getType,
     inspect,
-    // smash,
+    setType,
+    smash,
     type: getType,
     typeOf: getType,
     types
