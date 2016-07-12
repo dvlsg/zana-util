@@ -4,7 +4,8 @@
 /* eslint no-new-object: 0 */
 /* eslint no-array-constructor: 0 */
 
-import util, {
+const util = require('../dist/util.js');
+const {
       clone
     , deepCopy
     , equal
@@ -12,8 +13,8 @@ import util, {
     , getType
     , type
     , typeOf
-} from '../dist/util.js';
-import assert from 'assert';
+} = util;
+const assert = require('assert');
 
 describe('Util', () => {
 
@@ -841,6 +842,12 @@ describe('Util', () => {
             // note that using Symbol.iterator with forEach
             // is a way of overriding the default iteration
             class B extends A {
+                get arr() {
+                    let a = this.a;
+                    let b = this.b;
+                    let c = this.c;
+                    return [ a, b, c ];
+                }
                 *[Symbol.iterator]() {
                     yield* this.arr;
                 }
@@ -958,6 +965,30 @@ describe('Util', () => {
             assert.equal(util.getType(Set.prototype), util.types.set);
         });
 
+        it('should work with dates', () => {
+            assert.equal(util.getType(new Date()), util.types.date);
+        });
+
+        it('should work with errors', () => {
+            assert.equal(util.getType(new Error()), util.types.error);
+        });
+
+        it('should work with regexps', () => {
+            assert.equal(util.getType(/.*/), util.types.regexp);
+        });
+
+        it('should work with promises', () => {
+            assert.equal(util.getType(Promise.resolve()), util.types.promise);
+        });
+
+        it('should work with weakmaps', () => {
+            assert.equal(util.getType(new WeakMap()), util.types.weakmap);
+        });
+
+        it('should work with weaksets', () => {
+            assert.equal(util.getType(new WeakSet()), util.types.weakset);
+        });
+
         it('should work with classes by toStringTag', () => {
             class A {
                 get [Symbol.toStringTag]() { return 'A'; };
@@ -970,7 +1001,6 @@ describe('Util', () => {
             assert.equal(util.getType(Symbol()), util.types.symbol);
             assert.equal(util.getType(Symbol.prototype), util.types.symbol);
         });
-
     });
 
     describe('inspect()', () => {
@@ -1005,8 +1035,6 @@ describe('Util', () => {
         it('should inspect functions', () => {
             function fn1() {}
             assert.equal(util.inspect(fn1), '[Function: fn1]');
-            let fn2 = () => {};
-            assert.equal(util.inspect(fn2), '[Function: fn2]');
             assert.equal(util.inspect(function() {}), '[Function]');
             assert.equal(util.inspect(() => {}), '[Function]');
         });
@@ -1121,6 +1149,10 @@ describe('Util', () => {
 
         it('should have an entry for boolean', () => {
             assert.equal(util.getType(true), util.types.boolean);
+        });
+
+        it('should have an entry for buffer', () => {
+            assert.equal(util.getType(new Buffer([])), util.types.buffer);
         });
 
         it('should have an entry for date', () => {

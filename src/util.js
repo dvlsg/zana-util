@@ -37,69 +37,33 @@ class RecurseCounter {
     }
 }
 
-const toStringTagTemp = Symbol('@@toStringTagTemp'); // make sure this is a symbol, so we don't step on anyone else's toes.
-const generatorFnProto = (function*(){}).prototype;
-
-// NOTE: to fix a bug with how babel-runtime works without polyfilling Object.prototype.toString,
-// we need to make sure that the following polyfilled items will return the expected string
-// with the getType() method.
-//
-// if we don't do this, then toString.call() on these items will most likely return [object Object],
-// which will in turn cause methods like equals() and clone() to handle them incorrectly.
-Object.defineProperty(Promise.prototype, toStringTagTemp, {
-    get() { return '[object GeneratorFunction]'; },
-    enumerable: false
-});
-Object.defineProperty(Map.prototype, toStringTagTemp, {
-    get() { return '[object Map]'; },
-    enumerable: false
-});
-Object.defineProperty(Set.prototype, toStringTagTemp, {
-    get() { return '[object Set]'; },
-    enumerable: false
-});
-Object.defineProperty(WeakMap.prototype, toStringTagTemp, {
-    get() { return '[object WeakMap]'; },
-    enumerable: false
-});
-Object.defineProperty(WeakSet.prototype, toStringTagTemp, {
-    get() { return '[object WeakSet]'; },
-    enumerable: false
-});
-Object.defineProperty(generatorFnProto, toStringTagTemp, { // make sure this doesn't collide with anything else.
-    get() { return '[object GeneratorFunction]'; },
-    enumerable: false
-});
-
 export function getType(val) {
-    if (val && val[toStringTagTemp])
-        return val[toStringTagTemp];
     return toString.call(val);
 }
 
-export var types = {
-      'arguments'         : getType(arguments) // will this work? babel may be accidentally saving us here. swap to iife if necessary
-    , 'array'             : getType([])
-    , 'boolean'           : getType(true)
-    // buffer doesn't work, toString.call(Buffer) returns [object Object]
-    , 'date'              : getType(new Date())
-    , 'error'             : getType(new Error())
-    // , 'generator'         : getType(generatorProto)
-    , 'generatorFunction' : getType(generatorFnProto)
-    , 'function'          : getType(() => {})
-    , 'map'               : getType(new Map())
-    , 'null'              : getType(null)
-    , 'number'            : getType(0)
-    , 'object'            : getType({})
-    , 'promise'           : getType(new Promise(() => {}))
-    , 'regexp'            : getType(new RegExp())
-    , 'string'            : getType('')
-    , 'set'               : getType(new Set())
-    , 'symbol'            : getType(Symbol())
-    , 'undefined'         : getType(undefined)
-    , 'weakmap'           : getType(new WeakMap())
-    , 'weakset'           : getType(new WeakSet())
-};
+export const types = (function() { // use iife for safe arguments wrapper
+    return {
+          'arguments' : getType(arguments)
+        , 'array'     : getType([])
+        , 'boolean'   : getType(true)
+        , 'buffer'    : getType(new Buffer([])) // uses isBuffer. do we want to get specific? (UInt16Buffer, etc)
+        , 'date'      : getType(new Date())
+        , 'error'     : getType(new Error())
+        , 'function'  : getType(() => {})
+        , 'map'       : getType(new Map())
+        , 'null'      : getType(null)
+        , 'number'    : getType(0)
+        , 'object'    : getType({})
+        , 'promise'   : getType(new Promise(() => {}))
+        , 'regexp'    : getType(new RegExp())
+        , 'string'    : getType('')
+        , 'set'       : getType(new Set())
+        , 'symbol'    : getType(Symbol())
+        , 'undefined' : getType(undefined)
+        , 'weakmap'   : getType(new WeakMap())
+        , 'weakset'   : getType(new WeakSet())
+    };
+})();
 const typeset = new Set(Object.values(types));
 
 export function setType(key, value) {
@@ -129,7 +93,7 @@ function _clone(source, rc) {
             return source;
         case types.object:
         default:
-            if (Buffer.isBuffer(source)) // boo, extra checks on each object because of bad buffer toStringTag
+            if (Buffer.isBuffer(source))
                 return _bufferCopy(source, new Buffer(source.length));
             else
                 return _objectCopy(source, Object.create(Reflect.getPrototypeOf(source)), rc);
@@ -356,7 +320,6 @@ function _equals(x, y, rc) {
                 return false;
             break;
         default:
-            // safe to assume that if we hit default, we want to compare object (ie - unknown class type?)
             if (!_compareObject(x, y, rc))
                 return false;
             break;
@@ -493,7 +456,7 @@ export function forEach(item, method, context) {
         default:
             // if unknown type, then check for Symbol.iterator
             if (item[Symbol.iterator]) {
-                for (let value of item)
+                for (let value of item[Symbol.iterator]())
                     method.call(context, value, undefined, item);
             }
             else if (!typeset.has(type) && type && type.constructor) {

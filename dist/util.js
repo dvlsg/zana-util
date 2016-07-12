@@ -16,15 +16,13 @@ var _toConsumableArray = require('babel-runtime/helpers/to-consumable-array')['d
 
 var _regeneratorRuntime = require('babel-runtime/regenerator')['default'];
 
-var _Symbol = require('babel-runtime/core-js/symbol')['default'];
-
-var _Object$defineProperty = require('babel-runtime/core-js/object/define-property')['default'];
+var _Map = require('babel-runtime/core-js/map')['default'];
 
 var _Promise = require('babel-runtime/core-js/promise')['default'];
 
-var _Map = require('babel-runtime/core-js/map')['default'];
-
 var _Set = require('babel-runtime/core-js/set')['default'];
+
+var _Symbol = require('babel-runtime/core-js/symbol')['default'];
 
 var _WeakMap = require('babel-runtime/core-js/weak-map')['default'];
 
@@ -99,88 +97,34 @@ var RecurseCounter = (function () {
     return RecurseCounter;
 })();
 
-var toStringTagTemp = _Symbol('@@toStringTagTemp'); // make sure this is a symbol, so we don't step on anyone else's toes.
-var generatorFnProto = _regeneratorRuntime.mark(function callee$0$0() {
-    return _regeneratorRuntime.wrap(function callee$0$0$(context$1$0) {
-        while (1) switch (context$1$0.prev = context$1$0.next) {
-            case 0:
-            case 'end':
-                return context$1$0.stop();
-        }
-    }, callee$0$0, this);
-}).prototype;
-
-// NOTE: to fix a bug with how babel-runtime works without polyfilling Object.prototype.toString,
-// we need to make sure that the following polyfilled items will return the expected string
-// with the getType() method.
-//
-// if we don't do this, then toString.call() on these items will most likely return [object Object],
-// which will in turn cause methods like equals() and clone() to handle them incorrectly.
-_Object$defineProperty(_Promise.prototype, toStringTagTemp, {
-    get: function get() {
-        return '[object GeneratorFunction]';
-    },
-    enumerable: false
-});
-_Object$defineProperty(_Map.prototype, toStringTagTemp, {
-    get: function get() {
-        return '[object Map]';
-    },
-    enumerable: false
-});
-_Object$defineProperty(_Set.prototype, toStringTagTemp, {
-    get: function get() {
-        return '[object Set]';
-    },
-    enumerable: false
-});
-_Object$defineProperty(_WeakMap.prototype, toStringTagTemp, {
-    get: function get() {
-        return '[object WeakMap]';
-    },
-    enumerable: false
-});
-_Object$defineProperty(_WeakSet.prototype, toStringTagTemp, {
-    get: function get() {
-        return '[object WeakSet]';
-    },
-    enumerable: false
-});
-_Object$defineProperty(generatorFnProto, toStringTagTemp, { // make sure this doesn't collide with anything else.
-    get: function get() {
-        return '[object GeneratorFunction]';
-    },
-    enumerable: false
-});
-
 function getType(val) {
-    if (val && val[toStringTagTemp]) return val[toStringTagTemp];
     return toString.call(val);
 }
 
-var types = {
-    'arguments': getType(arguments), // will this work? babel may be accidentally saving us here. swap to iife if necessary
-    'array': getType([]),
-    'boolean': getType(true),
-    // buffer doesn't work, toString.call(Buffer) returns [object Object]
-    'date': getType(new Date()),
-    'error': getType(new Error()),
-    // , 'generator'         : getType(generatorProto)
-    'generatorFunction': getType(generatorFnProto),
-    'function': getType(function () {}),
-    'map': getType(new _Map()),
-    'null': getType(null),
-    'number': getType(0),
-    'object': getType({}),
-    'promise': getType(new _Promise(function () {})),
-    'regexp': getType(new RegExp()),
-    'string': getType(''),
-    'set': getType(new _Set()),
-    'symbol': getType(_Symbol()),
-    'undefined': getType(undefined),
-    'weakmap': getType(new _WeakMap()),
-    'weakset': getType(new _WeakSet())
-};
+var types = (function () {
+    // use iife for safe arguments wrapper
+    return {
+        'arguments': getType(arguments),
+        'array': getType([]),
+        'boolean': getType(true),
+        'buffer': getType(new Buffer([])), // uses isBuffer. do we want to get specific? (UInt16Buffer, etc)
+        'date': getType(new Date()),
+        'error': getType(new Error()),
+        'function': getType(function () {}),
+        'map': getType(new _Map()),
+        'null': getType(null),
+        'number': getType(0),
+        'object': getType({}),
+        'promise': getType(new _Promise(function () {})),
+        'regexp': getType(new RegExp()),
+        'string': getType(''),
+        'set': getType(new _Set()),
+        'symbol': getType(_Symbol()),
+        'undefined': getType(undefined),
+        'weakmap': getType(new _WeakMap()),
+        'weakset': getType(new _WeakSet())
+    };
+})();
 exports.types = types;
 var typeset = new _Set(_Object$values(types));
 
@@ -211,8 +155,7 @@ function _clone(source, rc) {
             return source;
         case types.object:
         default:
-            if (Buffer.isBuffer(source)) // boo, extra checks on each object because of bad buffer toStringTag
-                return _bufferCopy(source, new Buffer(source.length));else return _objectCopy(source, _Object$create(_Reflect$getPrototypeOf(source)), rc);
+            if (Buffer.isBuffer(source)) return _bufferCopy(source, new Buffer(source.length));else return _objectCopy(source, _Object$create(_Reflect$getPrototypeOf(source)), rc);
     }
 }
 
@@ -461,7 +404,6 @@ function _equals(x, y, rc) {
             if (x !== y) return false;
             break;
         default:
-            // safe to assume that if we hit default, we want to compare object (ie - unknown class type?)
             if (!_compareObject(x, y, rc)) return false;
             break;
     }
@@ -898,7 +840,7 @@ function forEach(item, method, context) {
                 var _iteratorError10 = undefined;
 
                 try {
-                    for (var _iterator10 = _getIterator(item), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
+                    for (var _iterator10 = _getIterator(_getIterator(item)), _step10; !(_iteratorNormalCompletion10 = (_step10 = _iterator10.next()).done); _iteratorNormalCompletion10 = true) {
                         var value = _step10.value;
 
                         method.call(context, value, undefined, item);
