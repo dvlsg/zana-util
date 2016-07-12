@@ -1001,6 +1001,10 @@ describe('Util', () => {
             assert.equal(util.getType(Symbol()), util.types.symbol);
             assert.equal(util.getType(Symbol.prototype), util.types.symbol);
         });
+
+        it('should work with generators', () => {
+            assert.equal(util.getType(function*(){}), util.types.generator);
+        });
     });
 
     describe('inspect()', () => {
@@ -1165,6 +1169,10 @@ describe('Util', () => {
 
         it('should have an entry for function', () => {
             assert.equal(util.getType(function(){}), util.types.function);
+        });
+
+        it('should have an entry for generator', () => {
+            assert.equal(util.getType(function*(){}), util.types.generator);
         });
 
         it('should have an entry for map', () => {
