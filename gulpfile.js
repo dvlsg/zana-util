@@ -3,8 +3,6 @@
 const gulp     = require('gulp');
 const mocha    = require('gulp-mocha');
 const eslint   = require('gulp-eslint');
-const plumber  = require('gulp-plumber');
-const babel    = require('gulp-babel');
 const del      = require('del');
 const sequence = require('run-sequence');
 
@@ -34,10 +32,9 @@ gulp.task('clean', (done) => {
 });
 
 gulp.task('build', () => {
+  // todo: wipe the build phase entirely,
+  // now that babel is gone.
   return gulp.src(srcGlob)
-    .pipe(plumber())
-    .pipe(babel()) // config in .babelrc
-    .pipe(plumber.stop())
     .pipe(gulp.dest(distDir));
 });
 

@@ -1,9 +1,8 @@
 {
-  "env": {
-    "node": true,
-    "mocha": true
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module"
   },
-  "parser": "babel-eslint",
   "rules": {
     "quotes": 0,
     "key-spacing": 0,
