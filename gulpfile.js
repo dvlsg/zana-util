@@ -26,12 +26,7 @@ gulp.task('test', () => {
 });
 
 gulp.task('watch', () => {
-  gulp.watch(srcGlob, () => {
-    sequence(
-      'lint',
-      'build'
-    );
-  });
+  gulp.watch(srcGlob, [ 'lint', 'test' ]);
   gulp.watch(testGlob, ['test']);
 });
 
