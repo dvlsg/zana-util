@@ -2,7 +2,7 @@
   "name": "zana-util",
   "version": "0.2.0",
   "description": "The utility class for the Zana package",
-  "main": "dist/util.js",
+  "main": "index.js",
   "scripts": {
     "build": "gulp build",
     "clean": "gulp clean",

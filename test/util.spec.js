@@ -4,7 +4,7 @@
 /* eslint no-new-object: 0 */
 /* eslint no-array-constructor: 0 */
 
-const util = require('../dist/util.js');
+const util = require('../');
 const {
       clone
     , deepCopy
